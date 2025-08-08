@@ -12,7 +12,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large, deeplabv3_resnet50
 
 from utils.args import get_args
-from utils.dataset_loader import FLYAWAREDataset
+from utils.dataset_loader import FLYAWAREDataset, DEFAULT_AUGMENTATIONS
 from utils.metrics import Metrics
 from utils.mm_model import EarlyFuse, LateFuse
 
@@ -37,6 +37,7 @@ if __name__ == "__main__":
 
     tset = FLYAWAREDataset(root=args.root_path,
                            variant="synthetic",
+                           augment_conf=DEFAULT_AUGMENTATIONS,
                            weather=args.weathers,
                            town=args.towns,
                            height=args.height,
@@ -52,11 +53,12 @@ if __name__ == "__main__":
 
     vset = FLYAWAREDataset(root=args.root_path,
                            variant="synthetic",
+                           augment_conf=DEFAULT_AUGMENTATIONS,
                            weather=args.weathers,
                            town=args.towns,
                            height=args.height,
                            modality=args.modality,
-                           split='val',
+                           split='test',
                            minlen=args.iters_per_epoch)
     vloader = DataLoader(vset,
                          batch_size=args.batch_size,

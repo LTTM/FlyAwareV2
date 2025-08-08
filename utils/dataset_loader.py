@@ -17,13 +17,14 @@ Classes:
     - FLYAWAREDataset: Class to handle the loading and processing of the FLYAWARE dataset.
 """
 
-from typing import Dict, List, Union
 from pathlib import Path
+from PIL import Image
+from typing import Dict, List, Union, Any, Optional
 
 import torch
 from torch.utils.data import Dataset
-from PIL import Image
 
+from torchvision.transforms import v2 as T
 
 # COnstants definition
 SYNTHETIC_CLASS_MAPPING = {
@@ -98,7 +99,19 @@ ALLOWED_TOWNS = {
 }
 ALLOWED_HEIGHTS = {"height20m", "height50m", "height80m", "all"}
 ALLOWED_MODALITIES = {"rgb", "depth", "all"}
-
+DEFAULT_AUGMENTATIONS = {
+    "resize": 1920,
+    "crop": False, # bool|int|[int, int]
+    "hflip": True,
+    "vflip": False,
+    "hue_shift": [-15, 15],
+    "sat_shift": [-15, 15],
+    "value_shift": [-15, 15],
+    "gauss_blur": [1.5],
+    "gauss_noise": [1.5]
+}
+IMAGENET_MEAN = torch.tensor([[[0.485]], [[0.456]], [[0.406]]], dtype=torch.float32)
+IMAGENET_STD = torch.tensor([[[0.229]], [[0.224]], [[0.225]]], dtype=torch.float32)
 
 class FLYAWAREDataset(Dataset):
     """
@@ -109,12 +122,14 @@ class FLYAWAREDataset(Dataset):
         self,
         root: Union[Path, str],
         variant: str,
+        augment_conf: Dict[str, Any],
         weather: Union[str, List[str]] = "all",
         town: Union[str, List[str]] = "all",
         height: Union[str, List[str]] = "all",
         modality: Union[str, List[str]] = "rgb",
         split: str = "train",
-        minlen: int = 0
+        minlen: int = 0,
+        augment: bool = True,
     ) -> None:
         """
         Initialize the dataset.
@@ -122,6 +137,8 @@ class FLYAWAREDataset(Dataset):
         Args:
             root (Union[Path, str]): Path to the dataset root directory.
             variant (str): Dataset variant, either 'synthetic' or 'real'.
+            augment_conf (Dict[str, Any]): Configuration for data augmentation,
+                        mandatory: 'resize': int|[int,int].
             weather (Union[str, List[str]]): Weather conditions to include.
             town (Union[str, List[str]]): Towns to include in the dataset.
             height (Union[str, List[str]]): Heights to include in the dataset.
@@ -129,6 +146,7 @@ class FLYAWAREDataset(Dataset):
             split (str): Dataset split, either 'train' or 'val'.
             minlen (int): Minimum length of the dataset, which will be expanded
                           by repeating the samples default is 0 = no change.
+            augment (bool): Whether to augment the dataset.
 
         Raises:
             ValueError: If any of the parameters are not allowed.
@@ -168,6 +186,10 @@ class FLYAWAREDataset(Dataset):
             raise ValueError(
                 f"Split '{split}' is not allowed. Choose either 'train' or 'test'."
             )
+        if "resize" not in augment_conf or "crop" not in augment_conf:
+            raise ValueError(
+                "Augmentation configuration must include 'resize' and 'crop'."
+            )
 
         # Convert root to Path if it is a string
         if isinstance(root, str):
@@ -194,6 +216,9 @@ class FLYAWAREDataset(Dataset):
         )
         self.split = split
         self.minlen = minlen
+        self.augment = augment and split == "train"
+        self.augment_conf = augment_conf
+        self.pil_to_tensor = T.PILToTensor()
 
         # Initialize the paths
         self._initialize_items()
@@ -290,7 +315,6 @@ class FLYAWAREDataset(Dataset):
         """
         return len(self.items[list(self.modality)[0]])
 
-    # TODO: finish and add augmentation
     def __getitem__(self, item: int) -> Dict[str, torch.Tensor]:
         """
         Get a sample from the dataset.
@@ -301,31 +325,87 @@ class FLYAWAREDataset(Dataset):
         Returns:
             Dict[str, torch.Tensor]: Sample data.
         """
+        # load the samples using pillow
+        # rgb: RGB image (uint8)
+        # depth: Depth image (uint16)
+        # semantic: Semantic indices (uint8)
+        sample = {k: Image.open(v[item]) for k, v in self.items.items()}
+        sample = self._resize_and_crop(sample)
+        if self.augment:
+            sample = self._augment_sample(sample)
+        return sample
 
-        return {
-            k: Image.open(v[item]) for k, v in self.items.items()
-        }
+    def _resize_and_crop(self, sample: Dict[str, Image.Image]) -> Dict[str, torch.Tensor]:
+        """
+        Resize, crop and convert the sample data to a tensor.
 
+        Args:
+           sample (Dict[str, Image.Image]): Sample data.
+
+        Returns:
+           Dict[str, torch.Tensor]: Resized and cropped sample data.
+        """
+        tensors = {k: self.pil_to_tensor(v) for k, v in sample.items()}
+        for k in tensors:
+            if k == 'rgb':
+                # normalize the rgb image with Imagenet mean and std
+                tensors[k] = tensors[k].to(torch.float32) / 255.
+                tensors[k] -= IMAGENET_MEAN
+                tensors[k] /= IMAGENET_STD
+            elif k == 'depth':
+                # normalize the depth image to [0, 1]
+                tensors[k] = tensors[k].to(torch.float32) / (2**16 - 1)
+                tensors[k] -= tensors[k].min()
+                tensors[k] /= tensors[k].max()
+                # shift it to the same scale as rgb image
+                tensors[k] -= IMAGENET_MEAN.mean(dim=0, keepdim=True)
+                tensors[k] /= IMAGENET_STD.mean(dim=0, keepdim=True)
+            elif k == 'semantic':
+                # map the label to training indices
+                lb = -1*torch.ones_like(tensors[k], dtype=torch.long)
+                data = SYNTHETIC_CLASS_MAPPING if self.variant == "synthetic" else REAL_CLASS_MAPPING
+                idmap = {k: v["train_id"] for k, v in data.items()}
+                for rid, tid in idmap.items():
+                    lb[tensors[k] == rid] = tid
+                tensors[k] = lb
+        return tensors
+
+    # TODO: finish
+    def _augment_sample(self, sample: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        """
+        Augment the sample data.
+
+        Args:
+            sample (Dict[str, Image.Image]): Sample data.
+
+        Returns:
+            Dict[str, torch.Tensor]: Augmented sample data.
+        """
+        return sample
 
 if __name__ == "__main__":
+    from matplotlib import pyplot as plt
+
     # Example usage of the FLYAWAREDataset class
     dataset = FLYAWAREDataset(
-        root="/media/matteocali/lttm_nas/datasets/FLYAWARE-V2",
-        variant="synthetic",
+        root="Z:/datasets/FLYAWARE-V2",
+        variant="real",
+        augment_conf=DEFAULT_AUGMENTATIONS,
         weather="all",
-        town=["Town01_Opt_120", "Town02_Opt_120"],
-        height="height20m",
+        town="all",
+        height="all",
         modality="all",
-        split="test",
+        split='test',
+        minlen=0
     )
 
-    print(f"Dataset initialized with {len(dataset)} samples.")
-    print("First element:")
-    print(dataset.items["rgb"][0])
-    print(dataset.items["depth"][0])
-    print(
-        dataset.items["semantic"][0]
-        if "semantic" in dataset.items
-        else "No semantic data available."
-    )
-    print(f"Dataset first element: {dataset[0]}")
+    sample = dataset[0]
+
+    fig, axs = plt.subplots(1, 3)
+    axs[0].imshow(sample['rgb'].permute(1,2,0))
+    axs[0].set_title('RGB Image')
+    axs[1].imshow(sample['depth'][0])
+    axs[1].set_title('Depth Image')
+    axs[2].imshow(sample['semantic'][0])
+    axs[2].set_title('Labels')
+    plt.show()
