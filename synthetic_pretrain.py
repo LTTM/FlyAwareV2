@@ -55,7 +55,7 @@ if __name__ == "__main__":
                            height=args.height,
                            modality=args.modality,
                            split='train',
-                           minlen=args.iters_per_epoch)
+                           minlen=args.iters_per_epoch*args.batch_size)
     tloader = DataLoader(tset,
                          batch_size=args.batch_size,
                          shuffle=True,
@@ -71,7 +71,7 @@ if __name__ == "__main__":
                            height=args.height,
                            modality=args.modality,
                            split='test',
-                           minlen=args.iters_per_epoch)
+                           minlen=args.iters_per_epoch*args.batch_size)
     vloader = DataLoader(vset,
                          batch_size=args.batch_size,
                          shuffle=False,
