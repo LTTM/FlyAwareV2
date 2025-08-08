@@ -259,7 +259,7 @@ class FLYAWAREDataset(Dataset):
         """
         curlen = len(self)
         if curlen < self.minlen:
-            expand = curlen // self.minlen + 1
+            expand = self.minlen // curlen + 1
             self.items = {k: v*expand for k,v in self.items.items()}
 
     def _initialize_items(self) -> None:

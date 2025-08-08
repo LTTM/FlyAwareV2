@@ -71,7 +71,7 @@ if __name__ == "__main__":
                            height=args.height,
                            modality=args.modality,
                            split='test',
-                           minlen=args.iters_per_epoch*args.batch_size)
+                           minlen=0)
     vloader = DataLoader(vset,
                          batch_size=args.batch_size,
                          shuffle=False,
