@@ -23,6 +23,15 @@ def cosinescheduler(it, niters, baselr=2.5e-4, warmup=2000):
     scale = np.cos((it/(niters-warmup))*(np.pi/2))**2
     return scale*baselr
 
+@torch.no_grad()
+def clean_grad(grad, m_norm=1.):
+    grad[torch.isnan(grad)] = 0
+    grad[torch.isinf(grad)] = 0
+    norm = grad.norm()
+    if norm > m_norm:
+        grad /= norm
+    return grad
+
 if __name__ == "__main__":
     args = get_args()
 
@@ -59,15 +68,10 @@ if __name__ == "__main__":
     if args.override_logs:
         rmtree(args.logdir, ignore_errors=True)
     if path.exists(args.logdir):
-        raise ValueError("Loggin Directory Exists, Stopping. If you want to override it turn on the [override_logs] flag.")
+        raise ValueError("Logging Directory Exists, Stopping. If you want to override it turn on the [override_logs] flag.")
 
     writer = SummaryWriter(args.logdir, flush_secs=.5)
     device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
-
-    if args.model in ['mmearly', 'mmlate']:
-        assert args.modality == 'all', "To use multimodal networks you need to enable all modalities [--modality all]"
-    if args.modality == 'all':
-        assert args.model in ['mmearly', 'mmlate'], "To use all modalities you need to use [--model mmearly/mmlate]"
 
     if args.model == 'mobilenet':
         # uses stride 16 (https://pytorch.org/vision/main/_modules/torchvision/models/segmentation/deeplabv3.html)
@@ -84,6 +88,7 @@ if __name__ == "__main__":
     loss.to(device)
 
     optim = Adam(model.parameters(), lr=args.lr)
+    gscaler = torch.GradScaler()
 
     it = 0
     for e in range(args.epochs):
@@ -94,24 +99,33 @@ if __name__ == "__main__":
             lr = cosinescheduler(it, args.epochs*args.iters_per_epoch, args.lr, warmup=args.warmup_iters)
             optim.param_groups[0]['lr'] = lr
 
-            if args.modality == 'all':
-                (rgb, dth, mlb), _ = samples
-                if args.model == 'mmlate':
-                    rgb, dth, mlb = rgb.to(device, dtype=torch.float32), dth.to(device, dtype=torch.float32), mlb.to(device, dtype=torch.long)
-                else:
-                    dth = dth.mean(dim=1, keepdim=True) # squeeze to single channel
-                    rgb = torch.cat([rgb, dth], dim=1) # make 4D input
-                    rgb, mlb = rgb.to(device, dtype=torch.float32), mlb.to(device, dtype=torch.long)
+            if "rgb" in tset.modality:
+                rgb = samples["rgb"].to("cuda")
+            if "depth" in tset.modality:
+                dth = samples["depth"].to("cuda")
+            if "semantic" in tset.modality:
+                mlb = samples["semantic"].to("cuda")
             else:
-                (rgb, mlb), _ = samples
-                rgb, mlb = rgb.to(device, dtype=torch.float32), mlb.to(device, dtype=torch.long)
+                raise ValueError("Cannot train models without labels!")
 
-            if args.model == 'mmlate':
-                out = model(rgb, dth)['out']
-            else:
-                out = model(rgb)['out']
-            l = loss(out, mlb)
-            l.backward()
+            # if model is ["mmearly", "mmlate"] then rgb and depth are sure to be present
+            if args.model == "mmearly":
+                dth = dth.mean(dim=1, keepdim=True) # squeeze to single channel
+                rgb = torch.cat([rgb, dth], dim=1) # make 4D input
+
+            with torch.autocast(device_type="cuda"):
+                if args.model == 'mmlate':
+                    out = model(rgb, dth)['out']
+                else:
+                    out = model(rgb)['out']
+                l = loss(out, mlb)
+            gscaler.scale(l).backward()
+            gscaler.unscale_(optim)
+            for par in model.parameters():
+                if par.requires_grad:
+                    par.grad = clean_grad(par.grad)
+            gscaler.step(optim)
+            gscaler.update()
 
             pred = out.detach().argmax(dim=1)
             metrics.add_sample(pred, mlb)
@@ -126,6 +140,7 @@ if __name__ == "__main__":
                 break
             if args.debug:
                 break
+
         writer.add_image('train/input', tset.to_rgb(rgb[0,:3].permute(1,2,0).cpu()), it, dataformats='HWC')
         writer.add_image('train/label', tset.color_label(mlb[0].cpu()), it, dataformats='HWC')
         writer.add_image('train/pred', tset.color_label(pred[0].cpu()), it, dataformats='HWC')
@@ -133,24 +148,28 @@ if __name__ == "__main__":
 
         model.eval()
         metrics = Metrics(tset.get_full_label_names()[:-1], device=device)
-        with torch.no_grad():
+        with torch.inference_mode():
             for samples in tqdm(vloader, total=len(vloader), desc="Test Epoch %d/%d"%(e+1, args.epochs)):
-                if args.modality == 'all':
-                    (rgb, dth, mlb), _ = samples
-                    if args.model == 'mmlate':
-                        rgb, dth, mlb = rgb.to(device, dtype=torch.float32), dth.to(device, dtype=torch.float32), mlb.to(device, dtype=torch.long)
-                    else:
-                        dth = dth.mean(dim=1, keepdim=True) # squeeze to single channel
-                        rgb = torch.cat([rgb, dth], dim=1) # make 4D input
-                        rgb, mlb = rgb.to(device, dtype=torch.float32), mlb.to(device, dtype=torch.long)
+                if "rgb" in tset.modality:
+                    rgb = samples["rgb"].to("cuda")
+                if "depth" in tset.modality:
+                    dth = samples["depth"].to("cuda")
+                if "semantic" in tset.modality:
+                    mlb = samples["semantic"].to("cuda")
                 else:
-                    (rgb, mlb), _ = samples
-                    rgb, mlb = rgb.to(device, dtype=torch.float32), mlb.to(device, dtype=torch.long)
+                    raise ValueError("Cannot evaluate models without labels!")
 
-                if args.model == 'mmlate':
-                    out = model(rgb, dth)['out']
-                else:
-                    out = model(rgb)['out']
+                # if model is ["mmearly", "mmlate"] then rgb and depth are sure to be present
+                if args.model == "mmearly":
+                    dth = dth.mean(dim=1, keepdim=True) # squeeze to single channel
+                    rgb = torch.cat([rgb, dth], dim=1) # make 4D input
+
+                with torch.autocast(device_type="cuda"):
+                    if args.model == 'mmlate':
+                        out = model(rgb, dth)['out']
+                    else:
+                        out = model(rgb)['out']
+
                 pred = out.argmax(dim=1)
                 metrics.add_sample(pred, mlb)
                 if args.debug:

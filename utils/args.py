@@ -1,9 +1,6 @@
 import argparse
 from utils.dataset_loader import ALLOWED_HEIGHTS, ALLOWED_MODALITIES, ALLOWED_TOWNS, ALLOWED_WEATHERS
 
-def str2bool(s):
-    return s.lower() in ["1", "t", "true", "y", "yes"]
-
 def str2list(s):
     if s == "str":
         return s
@@ -33,6 +30,13 @@ def get_args():
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--dloader_workers", type=int, default=4)
 
-    parser.add_argument("--debug", type=str2bool, default=False)
+    parser.add_argument("--debug", action="store_true", default=False)
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if args.model in ["mmearly", "mmlate"]:
+        assert args.modality == "all" or \
+            set(args.modality).intersection({"rgb", "depth"}) == {"rgb", "depth"}, \
+                f"MultiModal require both RGB and Depth modalities to be enabled, you have {args.modality}."
+
+    return args

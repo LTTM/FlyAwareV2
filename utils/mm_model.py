@@ -16,19 +16,19 @@ class LateFuse(nn.Module):
         x = torch.cat([c,d], dim=1)
         x = self.merge(x)
         return {'out': x}
-    
+
 class EarlyFuse(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
         self.dlv3 = deeplabv3_mobilenet_v3_large(num_classes=num_classes)
         with torch.no_grad():
-            Co, Ci, K1, K2 = self.dlv3.backbone['0'][0].weight.shape
+            Co, _, K1, K2 = self.dlv3.backbone['0'][0].weight.shape
             w = torch.empty(Co, 4, K1, K2)
             nn.init.xavier_uniform_(w)
             self.dlv3.backbone['0'][0].weight = nn.Parameter(w)
 
     def forward(self, x):
         return self.dlv3(x)
-    
+
 if __name__ == "__main__":
     EarlyFuse(28)
