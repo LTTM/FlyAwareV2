@@ -93,15 +93,14 @@ ALLOWED_TOWNS = {
     "Town06_Opt_120",
     "Town07_Opt_120",
     "Town08_Opt_120",
-    "Town09_Opt_120",
     "Town10HD_Opt_120",
     "all",
 }
 ALLOWED_HEIGHTS = {"height20m", "height50m", "height80m", "all"}
 ALLOWED_MODALITIES = {"rgb", "depth", "all"}
 DEFAULT_AUGMENTATIONS = {
-    "resize": 1920,
-    "crop": False, # bool|int|[int, int]
+    "resize": 1920, # int|[H:int, W:int]
+    "crop": False, # bool|[H:int, W:int]
     "hflip": True,
     "vflip": False,
     "hue_shift": [-15, 15],
@@ -186,9 +185,15 @@ class FLYAWAREDataset(Dataset):
             raise ValueError(
                 f"Split '{split}' is not allowed. Choose either 'train' or 'test'."
             )
-        if "resize" not in augment_conf or "crop" not in augment_conf:
+        if "resize" not in augment_conf:
             raise ValueError(
-                "Augmentation configuration must include 'resize' and 'crop'."
+                "Augmentation configuration must include 'resize'."
+            )
+        if not isinstance(augment_conf["resize"], int) and \
+            not (isinstance(augment_conf["resize"], list) and \
+             len(augment_conf["resize"]) == 2):
+            raise ValueError(
+                "Resize value must be an integer or a list of two integers."
             )
 
         # Convert root to Path if it is a string
@@ -315,6 +320,35 @@ class FLYAWAREDataset(Dataset):
         """
         return len(self.items[list(self.modality)[0]])
 
+    def _resize_tensor(self, tensor: torch.Tensor, interpolation_mode: str) -> torch.Tensor:
+        """
+        Resize a tensor to the specified size using the given interpolation mode.
+
+        Args:
+           tensor (torch.Tensor): The input tensor to resize.
+           interpolation_mode (str): The interpolation mode to use.
+
+        Returns:
+           torch.Tensor: The resized tensor.
+        """
+        tensor = tensor.unsqueeze(0)
+        if isinstance(self.augment_conf["resize"], int):
+            H, W = tensor.shape[2:]
+            if H > W:
+                W1 = round(self.augment_conf["resize"] * W / H)
+                tensor = torch.nn.functional.interpolate(tensor,
+                                size=(self.augment_conf["resize"], W1),
+                                mode=interpolation_mode)
+            else:
+                H1 = round(self.augment_conf["resize"] * H / W)
+                tensor = torch.nn.functional.interpolate(tensor,
+                                size=(H1, self.augment_conf["resize"]),
+                                mode=interpolation_mode)
+        else:
+            tensor = torch.nn.functional.interpolate(tensor, size=self.augment_conf,
+                                                    mode=interpolation_mode)
+        return tensor.squeeze(0)
+
     def __getitem__(self, item: int) -> Dict[str, torch.Tensor]:
         """
         Get a sample from the dataset.
@@ -352,6 +386,7 @@ class FLYAWAREDataset(Dataset):
                 tensors[k] = tensors[k].to(torch.float32) / 255.
                 tensors[k] -= IMAGENET_MEAN
                 tensors[k] /= IMAGENET_STD
+                tensors[k] = self._resize_tensor(tensors[k], "bilinear")
             elif k == 'depth':
                 # normalize the depth image to [0, 1]
                 tensors[k] = tensors[k].to(torch.float32) / (2**16 - 1)
@@ -360,14 +395,28 @@ class FLYAWAREDataset(Dataset):
                 # shift it to the same scale as rgb image
                 tensors[k] -= IMAGENET_MEAN.mean(dim=0, keepdim=True)
                 tensors[k] /= IMAGENET_STD.mean(dim=0, keepdim=True)
+                tensors[k] = self._resize_tensor(tensors[k], "bilinear")
             elif k == 'semantic':
                 # map the label to training indices
-                lb = -1*torch.ones_like(tensors[k], dtype=torch.long)
+                lb = -1*torch.ones_like(tensors[k], dtype=torch.float32)
                 data = SYNTHETIC_CLASS_MAPPING if self.variant == "synthetic" else REAL_CLASS_MAPPING
                 idmap = {k: v["train_id"] for k, v in data.items()}
                 for rid, tid in idmap.items():
                     lb[tensors[k] == rid] = tid
                 tensors[k] = lb
+                tensors[k] = self._resize_tensor(tensors[k], "nearest").long()
+
+            if isinstance(self.augment_conf["crop"], list) and len(self.augment_conf["crop"]) == 2:
+                H, W = tensors[k].shape[1:] # original height and width
+                pH, pW = self.augment_conf["crop"] # patch height and width
+                assert H >= pH and W >= pW, "Patch size must be smaller than or equal to original image size."
+                cpH, cpW = pH / 2, pW / 2
+                if self.augment:
+                    cH = torch.randint(round(cpH), round(H - cpH + 1), size=(1,), dtype=torch.long).item()
+                    cW = torch.randint(round(cpW), round(W - cpW + 1), size=(1,), dtype=torch.long).item()
+                else:
+                    cH, cW = H / 2, W / 2
+                tensors[k] = tensors[k][:,round(cH - cpH):round(cH + cpH), round(cW - cpW):round(cW + cpW)]
         return tensors
 
     # TODO: finish
@@ -386,16 +435,19 @@ class FLYAWAREDataset(Dataset):
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
 
+    aug = DEFAULT_AUGMENTATIONS
+    aug["crop"] = [512, 512]
+
     # Example usage of the FLYAWAREDataset class
     dataset = FLYAWAREDataset(
         root="Z:/datasets/FLYAWARE-V2",
-        variant="real",
-        augment_conf=DEFAULT_AUGMENTATIONS,
+        variant="synthetic",
+        augment_conf=aug,
         weather="all",
         town="all",
         height="all",
         modality="all",
-        split='test',
+        split='train',
         minlen=0
     )
 
