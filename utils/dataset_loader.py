@@ -65,7 +65,7 @@ REAL_CLASS_MAPPING = {
     3: {"name": "Tree", "color": [0, 128, 0], "train_id": 7},
     4: {"name": "Low vegetation", "color": [128, 128, 0], "train_id": 7},
     5: {"name": "Moving car", "color": [64, 0, 128], "train_id": 22},
-    6: {"name": "Human", "color": [64, 64, 0], "train_id": 40},
+    6: {"name": "Human", "color": [64, 64, 0], "train_id": 20},
     7: {"name": "Unlabeled", "color": [0, 0, 0], "train_id": -1},
 }
 SYNTHETIC_TO_REAL_MAPPING = {
@@ -92,7 +92,6 @@ ALLOWED_TOWNS = {
     "Town05_Opt_120",
     "Town06_Opt_120",
     "Town07_Opt_120",
-    "Town08_Opt_120",
     "Town10HD_Opt_120",
     "all",
 }
@@ -230,19 +229,17 @@ class FLYAWAREDataset(Dataset):
         if minlen > 0:
             self._expand_items()
 
-    def get_full_label_names(self) -> List[str]:
+    def get_train_label_names(self) -> List[str]:
         """
         Get the names of all labels in the dataset from the provided constants.
         """
-        data = SYNTHETIC_CLASS_MAPPING if self.variant == "synthetic" else REAL_CLASS_MAPPING
-        return [el["name"] for el in data.items()]
+        return [el["name"] for el in SYNTHETIC_CLASS_MAPPING.values()]
 
-    def get_full_colormap(self) -> List[List[int]]:
+    def get_train_colormap(self) -> List[List[int]]:
         """
         Get the colormap of all labels in the dataset from the provided constants.
         """
-        data = SYNTHETIC_CLASS_MAPPING if self.variant == "synthetic" else REAL_CLASS_MAPPING
-        return [el["color"] for el in data.items()]
+        return torch.tensor([el["color"] for el in SYNTHETIC_CLASS_MAPPING.values()], dtype=torch.uint8)
 
     def _expand_items(self) -> None:
         """
@@ -417,6 +414,10 @@ class FLYAWAREDataset(Dataset):
                 else:
                     cH, cW = H / 2, W / 2
                 tensors[k] = tensors[k][:,round(cH - cpH):round(cH + cpH), round(cW - cpW):round(cW + cpW)]
+
+            if k == "semantic":
+                tensors[k] = tensors[k].squeeze(0) # remove channel dimension
+
         return tensors
 
     # TODO: finish
@@ -432,32 +433,61 @@ class FLYAWAREDataset(Dataset):
         """
         return sample
 
+    def color_label(self, label: torch.Tensor) -> torch.Tensor:
+        """
+        Colorize the label tensor.
+
+        Args:
+           label (torch.Tensor): Label tensor.
+
+        Returns:
+           torch.Tensor: Colorized label tensor.
+        """
+        cmap = self.get_train_colormap()
+        return cmap[label]
+
+    def to_rgb(self, ts: torch.Tensor) -> torch.Tensor:
+        """
+        Convert the tensor to RGB format, inverting normalization.
+
+        Args:
+           ts (torch.Tensor): Tensor to convert.
+
+        Returns:
+           torch.Tensor: RGB tensor.
+        """
+        ts = ts * IMAGENET_STD
+        ts = ts + IMAGENET_MEAN
+        return torch.clamp(ts, 0, 1)
+
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
+    torch.manual_seed(42)
+    torch.cuda.manual_seed_all(42)
 
     aug = DEFAULT_AUGMENTATIONS
-    aug["crop"] = [512, 512]
+    # aug["crop"] = [512, 512]
 
     # Example usage of the FLYAWAREDataset class
     dataset = FLYAWAREDataset(
         root="Z:/datasets/FLYAWARE-V2",
-        variant="synthetic",
+        variant="real",
         augment_conf=aug,
         weather="all",
         town="all",
         height="all",
         modality="all",
-        split='train',
+        split='test',
         minlen=0
     )
 
     sample = dataset[0]
 
     fig, axs = plt.subplots(1, 3)
-    axs[0].imshow(sample['rgb'].permute(1,2,0))
+    axs[0].imshow(dataset.to_rgb(sample['rgb']).permute(1,2,0))
     axs[0].set_title('RGB Image')
     axs[1].imshow(sample['depth'][0])
     axs[1].set_title('Depth Image')
-    axs[2].imshow(sample['semantic'][0])
+    axs[2].imshow(dataset.color_label(sample['semantic']))
     axs[2].set_title('Labels')
     plt.show()

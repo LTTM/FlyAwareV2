@@ -95,7 +95,7 @@ if __name__ == "__main__":
     it = 0
     for e in range(args.epochs):
         model.train()
-        metrics = Metrics(tset.get_full_label_names()[:-1], device=device)
+        metrics = Metrics(tset.get_train_label_names()[:-1], device=device)
         for ii, samples in enumerate(tqdm(tloader, total=args.iters_per_epoch, desc="Training Epoch %d/%d"%(e+1, args.epochs))):
             optim.zero_grad()
             lr = cosinescheduler(it, args.epochs*args.iters_per_epoch, args.lr, warmup=args.warmup_iters)
@@ -143,13 +143,13 @@ if __name__ == "__main__":
             if args.debug:
                 break
 
-        writer.add_image('train/input', tset.to_rgb(rgb[0,:3].permute(1,2,0).cpu()), it, dataformats='HWC')
-        writer.add_image('train/label', tset.color_label(mlb[0].cpu()), it, dataformats='HWC')
-        writer.add_image('train/pred', tset.color_label(pred[0].cpu()), it, dataformats='HWC')
+        writer.add_image('train/input', tset.to_rgb(rgb[0,:3].cpu()).permute(1,2,0), it)
+        writer.add_image('train/label', tset.color_label(mlb[0].cpu()), it)
+        writer.add_image('train/pred', tset.color_label(pred[0].cpu()), it)
         torch.save(model.state_dict(), args.logdir+"/latest.pth")
 
         model.eval()
-        metrics = Metrics(tset.get_full_label_names()[:-1], device=device)
+        metrics = Metrics(tset.get_train_label_names()[:-1], device=device)
         with torch.inference_mode():
             for samples in tqdm(vloader, total=len(vloader), desc="Test Epoch %d/%d"%(e+1, args.epochs)):
                 if "rgb" in tset.modality:
