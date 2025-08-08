@@ -12,6 +12,9 @@ Constants:
     - ALLOWED_TOWNS: list of allowed towns in the dataset.
     - ALLOWED_HEIGHTS: list of allowed heights for the dataset.
     - ALLOWED_MODALITIES: list of allowed modalities (rgb, depth).
+    - DEFAULT_AUGMENTATIONS: default augmentations dictionary to apply during data loading.
+    - IMAGENET_MEAN: tensor containing the mean values for the ImageNet dataset.
+    - IMAGENET_STD: tensor containing the standard deviation values for the ImageNet dataset.
 
 Classes:
     - FLYAWAREDataset: Class to handle the loading and processing of the FLYAWARE dataset.
@@ -102,11 +105,12 @@ DEFAULT_AUGMENTATIONS = {
     "crop": False, # bool|[H:int, W:int]
     "hflip": True,
     "vflip": False,
-    "hue_shift": [-15, 15],
-    "sat_shift": [-15, 15],
-    "value_shift": [-15, 15],
-    "gauss_blur": [1.5],
-    "gauss_noise": [1.5]
+    "brightness_jitter": .5, # maximum relative brightness change
+    "contrast_jitter": .5,   # maximum relative contrast change
+    "saturation_jitter": .5, # maximum relative saturation change
+    "hue_jitter": .5,        # maximum relative hue change
+    "gauss_blur": 1.5,       # maximum sigma of gaussian blur, 0: disabled, min_val: 0.2
+    "gauss_noise": 1.5       # std scale of gaussian noise
 }
 IMAGENET_MEAN = torch.tensor([[[0.485]], [[0.456]], [[0.406]]], dtype=torch.float32)
 IMAGENET_STD = torch.tensor([[[0.229]], [[0.224]], [[0.225]]], dtype=torch.float32)
@@ -223,6 +227,14 @@ class FLYAWAREDataset(Dataset):
         self.augment = augment and split == "train"
         self.augment_conf = augment_conf
         self.pil_to_tensor = T.PILToTensor()
+        if self.augment_conf["gauss_noise"] > 0:
+            self.blur = T.GaussianBlur(5, (0.1, self.augment_conf["gauss_noise"]))
+        else:
+            self.blur = torch.nn.Identity()
+        self.jitter = T.ColorJitter(brightness=self.augment_conf["brightness_jitter"],
+                                    contrast=self.augment_conf["contrast_jitter"],
+                                    saturation=self.augment_conf["saturation_jitter"],
+                                    hue=self.augment_conf["hue_jitter"])
 
         # Initialize the paths
         self._initialize_items()
@@ -280,8 +292,8 @@ class FLYAWAREDataset(Dataset):
                 for mod in self.items:
                     # Accept both PNG and JPG formats
                     mod_path = weather_path / mod
-                    png_paths = list(mod_path.glob("*.png"))
-                    jpg_paths = list(mod_path.glob("*.jpg"))
+                    png_paths = sorted(list(mod_path.glob("*.png")))
+                    jpg_paths = sorted(list(mod_path.glob("*.jpg")))
                     self.items[mod].extend(png_paths + jpg_paths)
         else:
             # Read the split txt file
@@ -364,6 +376,8 @@ class FLYAWAREDataset(Dataset):
         sample = self._resize_and_crop(sample)
         if self.augment:
             sample = self._augment_sample(sample)
+        if "semantic" in sample:
+            sample["semantic"] = sample["semantic"].squeeze(0) # remove channel dimension
         return sample
 
     def _resize_and_crop(self, sample: Dict[str, Image.Image]) -> Dict[str, torch.Tensor]:
@@ -414,13 +428,8 @@ class FLYAWAREDataset(Dataset):
                 else:
                     cH, cW = H / 2, W / 2
                 tensors[k] = tensors[k][:,round(cH - cpH):round(cH + cpH), round(cW - cpW):round(cW + cpW)]
-
-            if k == "semantic":
-                tensors[k] = tensors[k].squeeze(0) # remove channel dimension
-
         return tensors
 
-    # TODO: finish
     def _augment_sample(self, sample: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """
         Augment the sample data.
@@ -431,6 +440,17 @@ class FLYAWAREDataset(Dataset):
         Returns:
             Dict[str, torch.Tensor]: Augmented sample data.
         """
+        if self.augment_conf["hflip"] and torch.rand((1,)) < .5:
+            sample = {k: v.flip(2) for k, v in sample.items()}
+        if self.augment_conf["vflip"] and torch.rand((1,)) < .5:
+            sample = {k: v.flip(1) for k, v in sample.items()}
+
+        if "rgb" in sample:
+            rgb = sample["rgb"]
+            rgb += self.augment_conf["gauss_noise"]*torch.randn_like(rgb)
+            rgb = self.blur(rgb)
+            rgb = self.jitter(rgb)
+
         return sample
 
     def color_label(self, label: torch.Tensor) -> torch.Tensor:
@@ -471,13 +491,13 @@ if __name__ == "__main__":
     # Example usage of the FLYAWAREDataset class
     dataset = FLYAWAREDataset(
         root="Z:/datasets/FLYAWARE-V2",
-        variant="real",
+        variant="synthetic",
         augment_conf=aug,
         weather="all",
         town="all",
         height="all",
         modality="all",
-        split='test',
+        split='train',
         minlen=0
     )
 
