@@ -143,9 +143,9 @@ if __name__ == "__main__":
             if args.debug:
                 break
 
-        writer.add_image('train/input', tset.to_rgb(rgb[0,:3].cpu()).permute(1,2,0), it)
-        writer.add_image('train/label', tset.color_label(mlb[0].cpu()), it)
-        writer.add_image('train/pred', tset.color_label(pred[0].cpu()), it)
+        writer.add_image('train/input', tset.to_rgb(rgb[0,:3].cpu()).permute(1,2,0), it, dataformats="HWC")
+        writer.add_image('train/label', tset.color_label(mlb[0].cpu()), it, dataformats="HWC")
+        writer.add_image('train/pred', tset.color_label(pred[0].cpu()), it, dataformats="HWC")
         torch.save(model.state_dict(), args.logdir+"/latest.pth")
 
         model.eval()
@@ -178,7 +178,7 @@ if __name__ == "__main__":
                     break
 
             writer.add_scalar('test/mIoU', metrics.percent_mIoU(), it)
-            writer.add_image('test/input', tset.to_rgb(rgb[0,:3].permute(1,2,0).cpu()), it, dataformats='HWC')
+            writer.add_image('test/input', tset.to_rgb(rgb[0,:3].cpu()).permute(1,2,0), it, dataformats='HWC')
             writer.add_image('test/label', tset.color_label(mlb[0].cpu()), it, dataformats='HWC')
             writer.add_image('test/pred', tset.color_label(pred[0].cpu()), it, dataformats='HWC')
             print(metrics)
