@@ -284,7 +284,7 @@ class FLYAWAREDataset(Dataset):
             if self.split == "test":
                 self.items["semantic"] = []
 
-            for weather in self.weather:
+            for weather in sorted(self.weather):
                 # Get the weather-specific path
                 weather_path = root_path / weather
 
@@ -310,10 +310,10 @@ class FLYAWAREDataset(Dataset):
             self.items["semantic"] = []
 
             # Load the paths for each modality
-            for town in self.town:
-                for weather in self.weather:
+            for town in sorted(self.town):
+                for weather in sorted(self.weather):
                     weather = WEATHER_NAMES_MAPPING[weather]
-                    for height in self.height:
+                    for height in sorted(self.height):
                         for mod in self.items:
                             base_dir = root_path / town / weather / height / mod
                             for frame in frames:
@@ -399,8 +399,12 @@ class FLYAWAREDataset(Dataset):
                 tensors[k] /= IMAGENET_STD
                 tensors[k] = self._resize_tensor(tensors[k], "bilinear")
             elif k == 'depth':
-                # normalize the depth image to [0, 1]
+                # convert to float
                 tensors[k] = tensors[k].to(torch.float32) / (2**16 - 1)
+                # clamp depth to 2nd max value
+                mask = tensors[k] == tensors[k].max()
+                tensors[k][mask] = tensors[k][~mask].max()
+                # normalize depth to [0, 1]
                 tensors[k] -= tensors[k].min()
                 tensors[k] /= tensors[k].max()
                 # shift it to the same scale as rgb image
@@ -501,7 +505,7 @@ if __name__ == "__main__":
         minlen=0
     )
 
-    sample = dataset[0]
+    sample = dataset[5000]
 
     fig, axs = plt.subplots(1, 3)
     axs[0].imshow(dataset.to_rgb(sample['rgb']).permute(1,2,0))
