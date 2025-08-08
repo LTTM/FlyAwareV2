@@ -99,7 +99,7 @@ ALLOWED_TOWNS = {
     "all",
 }
 ALLOWED_HEIGHTS = {"height20m", "height50m", "height80m", "all"}
-ALLOWED_MODALITIES = {"rgb", "depth", "all"}
+ALLOWED_MODALITIES = {"rgb", "depth", "semantic", "all"}
 DEFAULT_AUGMENTATIONS = {
     "resize": 1920, # int|[H:int, W:int]
     "crop": False, # bool|[H:int, W:int]
@@ -281,8 +281,6 @@ class FLYAWAREDataset(Dataset):
         if self.variant == "real":
             # Define the root path based on the split
             root_path = root_path / self.split
-            if self.split == "test":
-                self.items["semantic"] = []
 
             for weather in sorted(self.weather):
                 # Get the weather-specific path
@@ -305,9 +303,6 @@ class FLYAWAREDataset(Dataset):
 
             with open(split_file_path, "r", encoding="utf-8") as file:
                 frames = [l.strip().zfill(5) for l in file]
-
-            # Add semantic to items
-            self.items["semantic"] = []
 
             # Load the paths for each modality
             for town in sorted(self.town):
@@ -368,11 +363,16 @@ class FLYAWAREDataset(Dataset):
         Returns:
             Dict[str, torch.Tensor]: Sample data.
         """
+
+        # get the modalities that actually have elements
+        # (i.e., check if the segmentation labels are presents)
+        mods = [k for k, v in self.items.items() if len(v) > 0]
+
         # load the samples using pillow
         # rgb: RGB image (uint8)
         # depth: Depth image (uint16)
         # semantic: Semantic indices (uint8)
-        sample = {k: Image.open(v[item]) for k, v in self.items.items()}
+        sample = {k: Image.open(self.items[k][item]) for k in mods}
         sample = self._resize_and_crop(sample)
         if self.augment:
             sample = self._augment_sample(sample)
