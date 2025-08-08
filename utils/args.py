@@ -10,14 +10,13 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--root_path", type=str, default='Z:/datasets/FLYAWARE-V2')
-    parser.add_argument("--splits_path", type=str, default='Z:/datasets/FLYAWARE-V2')
     parser.add_argument("--height", type=str2set, default='all')
     parser.add_argument("--modality", type=str2set, default="rgb,semantic")
     parser.add_argument("--town", type=str2set, default='all')
     parser.add_argument("--weather", type=str2set, default='all')
     parser.add_argument("--model", type=str, default='mobilenet', choices=['mobilenet', 'resnet50', 'mmearly', 'mmlate'])
 
-    parser.add_argument("--logdir", type=str, default='logs')
+    parser.add_argument("--logdir", type=str, default='logs/test')
     parser.add_argument("--override_logs", action="store_true", default=False)
     parser.add_argument("--pretrained_ckpt", type=str, default=None)
     parser.add_argument("--evaldir", type=str, default='evals')
