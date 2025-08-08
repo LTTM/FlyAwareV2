@@ -32,8 +32,20 @@ def clean_grad(grad, m_norm=1.):
         grad /= norm
     return grad
 
+def set_seed(seed):
+    # temporarily import random and numpy-random
+    # to seed them as well, some other piece of
+    # code may be using their RNGs inside
+    import random # pylint: disable=import-outside-toplevel
+    from numpy import random as npr # pylint: disable=import-outside-toplevel
+    random.seed(seed)
+    npr.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
 if __name__ == "__main__":
     args = get_args()
+    set_seed(args.seed)
 
     tset = FLYAWAREDataset(root=args.root_path,
                            variant="synthetic",

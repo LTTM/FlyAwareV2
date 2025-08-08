@@ -31,6 +31,7 @@ def get_args():
     parser.add_argument("--dloader_workers", type=int, default=8)
 
     parser.add_argument("--debug", action="store_true", default=False)
+    parser.add_argument("--seed", type=int, default=42, help="Global RNG seed")
 
     args = parser.parse_args()
 
