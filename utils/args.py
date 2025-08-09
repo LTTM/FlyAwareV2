@@ -51,7 +51,7 @@ def get_args():
     args.weather = list(args.weather) # cast back to list
 
     if args.model in ["mmearly", "mmlate"]:
-        assert args.modality == "all" or \
+        assert args.modality == ["all"] or \
             set(args.modality).intersection({"rgb", "depth"}) == {"rgb", "depth"}, \
                 f"MultiModal require both RGB and Depth modalities to be enabled, you have {args.modality}."
 
