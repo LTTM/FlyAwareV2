@@ -4,7 +4,7 @@ from shutil import rmtree
 from tqdm import tqdm
 
 import torch
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, DataParallel
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
@@ -99,30 +99,34 @@ if __name__ == "__main__":
 
     # change network to single-channel input
     if 'rgb' not in args.modality:
-        if args.model == 'mobilenet':
-            Co, _, K1, K2 = model.backbone['0'][0].weight.shape
-            w = torch.empty(Co, 1, K1, K2)
-            torch.nn.init.xavier_uniform_(w)
-            model.backbone['0'][0].weight = torch.nn.Parameter(w)
-        elif args.model == 'resnet50':
-            Co, _, K1, K2 = model.backbone['conv1'].weight.shape
-            w = torch.empty(Co, 1, K1, K2)
-            torch.nn.init.xavier_uniform_(w)
-            model.backbone['conv1'].weight = torch.nn.Parameter(w)
+        with torch.no_grad():
+            if args.model == 'mobilenet':
+                Co, _, K1, K2 = model.backbone['0'][0].weight.shape
+                w = torch.empty(Co, 1, K1, K2)
+                torch.nn.init.xavier_uniform_(w)
+                model.backbone['0'][0].weight = torch.nn.Parameter(w)
+            elif args.model == 'resnet50':
+                Co, _, K1, K2 = model.backbone['conv1'].weight.shape
+                w = torch.empty(Co, 1, K1, K2)
+                torch.nn.init.xavier_uniform_(w)
+                model.backbone['conv1'].weight = torch.nn.Parameter(w)
 
+    model = DataParallel(model)
     model.to(device)
 
     loss = CrossEntropyLoss(ignore_index=-1)
     loss.to(device)
 
-    optim = Adam(model.parameters(), lr=args.lr)
+    optim = Adam(model.module.parameters(), lr=args.lr)
     gscaler = torch.GradScaler()
 
     it = 0
     for e in range(args.epochs):
         model.train()
         metrics = Metrics(tset.get_train_label_names()[:-1], device=device)
-        for ii, samples in enumerate(tqdm(tloader, total=args.iters_per_epoch, desc="Training Epoch %d/%d"%(e+1, args.epochs))):
+        for ii, samples in enumerate(tqdm(tloader, total=args.iters_per_epoch,
+                desc="Training Epoch %d/%d"%(e+1, args.epochs), smoothing=0)):
+
             optim.zero_grad()
             lr = cosinescheduler(it, args.epochs*args.iters_per_epoch, args.lr, warmup=args.warmup_iters)
             optim.param_groups[0]['lr'] = lr
@@ -179,7 +183,9 @@ if __name__ == "__main__":
         model.eval()
         metrics = Metrics(tset.get_train_label_names()[:-1], device=device)
         with torch.inference_mode():
-            for samples in tqdm(vloader, total=len(vloader), desc="Test Epoch %d/%d"%(e+1, args.epochs)):
+            for samples in tqdm(vloader, total=len(vloader),
+                    desc="Test Epoch %d/%d"%(e+1, args.epochs), smoothing=0):
+
                 if "rgb" in tset.modality:
                     rgb = samples["rgb"].to("cuda")
                 if "depth" in tset.modality:

@@ -8,6 +8,11 @@ class LateFuse(nn.Module):
 
         self.rgb = deeplabv3_mobilenet_v3_large(num_classes=num_classes)
         self.dth = deeplabv3_mobilenet_v3_large(num_classes=num_classes)
+        with torch.no_grad():
+            Co, _, K1, K2 = self.dth.backbone['0'][0].weight.shape
+            w = torch.empty(Co, 1, K1, K2)
+            torch.nn.init.xavier_uniform_(w)
+            self.dth.backbone['0'][0].weight = torch.nn.Parameter(w)
         self.merge = nn.Conv2d(2*num_classes, num_classes, 1, bias=False)
 
     def forward(self, c, d):
