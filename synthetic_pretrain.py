@@ -96,6 +96,20 @@ if __name__ == "__main__":
         model = EarlyFuse(num_classes=28)
     else:
         model = LateFuse(num_classes=28)
+
+    # change network to single-channel input
+    if 'rgb' not in args.modality:
+        if args.model == 'mobilenet':
+            Co, _, K1, K2 = model.backbone['0'][0].weight.shape
+            w = torch.empty(Co, 1, K1, K2)
+            torch.nn.init.xavier_uniform_(w)
+            model.backbone['0'][0].weight = torch.nn.Parameter(w)
+        elif args.model == 'resnet50':
+            Co, _, K1, K2 = model.backbone['conv1'].weight.shape
+            w = torch.empty(Co, 1, K1, K2)
+            torch.nn.init.xavier_uniform_(w)
+            model.backbone['conv1'].weight = torch.nn.Parameter(w)
+
     model.to(device)
 
     loss = CrossEntropyLoss(ignore_index=-1)
@@ -117,6 +131,8 @@ if __name__ == "__main__":
                 rgb = samples["rgb"].to("cuda")
             if "depth" in tset.modality:
                 dth = samples["depth"].to("cuda")
+                if 'rgb' not in tset.modality:
+                    rgb = dth
             if "semantic" in tset.modality:
                 mlb = samples["semantic"].to("cuda")
             else:
@@ -168,6 +184,8 @@ if __name__ == "__main__":
                     rgb = samples["rgb"].to("cuda")
                 if "depth" in tset.modality:
                     dth = samples["depth"].to("cuda")
+                    if 'rgb' not in tset.modality:
+                        rgb = dth
                 if "semantic" in tset.modality:
                     mlb = samples["semantic"].to("cuda")
                 else:
