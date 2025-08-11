@@ -1,5 +1,6 @@
 import argparse
-from utils.dataset_loader import ALLOWED_HEIGHTS, ALLOWED_MODALITIES, ALLOWED_TOWNS, ALLOWED_WEATHERS
+from utils.dataset_loader import ALLOWED_HEIGHTS, \
+    ALLOWED_MODALITIES, ALLOWED_TOWNS, ALLOWED_WEATHERS, DEFAULT_AUGMENTATIONS
 
 def str2set(s):
     if s == "str":
@@ -43,6 +44,7 @@ def get_args():
 
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--dloader_workers", type=int, default=8)
+    parser.add_argument("--resize", type=int, default=DEFAULT_AUGMENTATIONS["resize"])
 
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--seed", type=int, default=42, help="Global RNG seed")

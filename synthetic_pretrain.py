@@ -47,9 +47,12 @@ if __name__ == "__main__":
     args = get_args()
     set_seed(args.seed)
 
+    augs = DEFAULT_AUGMENTATIONS
+    DEFAULT_AUGMENTATIONS["resize"] = args.resize
+
     tset = FLYAWAREDataset(root=args.root_path,
                            variant="synthetic",
-                           augment_conf=DEFAULT_AUGMENTATIONS,
+                           augment_conf=augs,
                            weather=args.weather,
                            town=args.town,
                            height=args.height,
@@ -65,7 +68,7 @@ if __name__ == "__main__":
 
     vset = FLYAWAREDataset(root=args.root_path,
                            variant="synthetic",
-                           augment_conf=DEFAULT_AUGMENTATIONS,
+                           augment_conf=augs,
                            weather=args.weather,
                            town=args.town,
                            height=args.height,

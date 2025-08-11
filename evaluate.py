@@ -30,6 +30,9 @@ if __name__ == "__main__":
     args = get_args()
     set_seed(args.seed)
 
+    augs = DEFAULT_AUGMENTATIONS
+    DEFAULT_AUGMENTATIONS["resize"] = args.resize
+
     assert args.pretrained_ckpt is not None, \
             "Cannot run Evaluation without a checkpoint to load."
     assert path.exists(args.pretrained_ckpt), \
