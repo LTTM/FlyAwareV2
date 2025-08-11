@@ -274,7 +274,7 @@ class FLYAWAREDataset(Dataset):
             else:
                 # unlabeled must be black
                 coarse_cmap.append([0, 0, 0])
-        return torch.tensor(coarse_cmap)
+        return torch.tensor(coarse_cmap, dtype=torch.uint8)
 
     def _expand_items(self) -> None:
         """
@@ -543,11 +543,11 @@ class FLYAWAREDataset(Dataset):
         """
         B, _, H, W = pred.shape
         C = len(SYNTHETIC_TO_REAL_MAPPING) - 1 # unlabeled is not in the predictions
-        coarse_pred = torch.zeros(B,C,H,W, dtype=pred.dtype, device=pred.device)
+        coarse_pred = float('-inf')*torch.ones(B,C,H,W, dtype=pred.dtype, device=pred.device)
         for cidx, data in SYNTHETIC_TO_REAL_MAPPING.items():
             if cidx != -1:
                 for fidx in data['ids']:
-                    coarse_pred[:,cidx] += pred[:,fidx]
+                    coarse_pred[:,cidx] = torch.maximum(coarse_pred[:,cidx], pred[:,fidx])
         return coarse_pred
 
     @torch.no_grad()

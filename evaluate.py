@@ -44,8 +44,10 @@ if __name__ == "__main__":
                            modality=args.modality,
                            split='test',
                            minlen=0)
+    # instantiate dataloader forcing the batch size to 1 if the variant is real
+    # necessary since some samples have different aspect ratios
     vloader = DataLoader(vset,
-                         batch_size=args.batch_size,
+                         batch_size=args.batch_size if args.variant == 'synthetic' else 1,
                          shuffle=False,
                          pin_memory=True,
                          drop_last=False,
@@ -55,7 +57,8 @@ if __name__ == "__main__":
         if args.eval_tensorboard:
             rmtree(args.evaldir, ignore_errors=True)
         else:
-            remove(path.join(args.evaldir, "metrics.csv"))
+            if path.exists(path.join(args.evaldir, "metrics.csv")):
+                remove(path.join(args.evaldir, "metrics.csv"))
 
     if path.exists(args.evaldir) and args.eval_tensorboard:
         raise ValueError("Evaluation Directory Exists, Stopping."+
@@ -143,8 +146,8 @@ if __name__ == "__main__":
         if args.eval_tensorboard:
             writer.add_scalar('test/mIoU', metrics.percent_mIoU(), 0)
             writer.add_image('test/input', vset.to_rgb(rgb[0,:3].cpu()).permute(1,2,0), 0, dataformats='HWC')
-            writer.add_image('test/label', vset.color_label(mlb[0].cpu()), 0, dataformats='HWC')
-            writer.add_image('test/pred', vset.color_label(pred[0].cpu()), 0, dataformats='HWC')
+            writer.add_image('test/label', vset.color_label(mlb[0].cpu(), coarse_level=True), 0, dataformats='HWC')
+            writer.add_image('test/pred', vset.color_label(pred[0].cpu(), coarse_level=True), 0, dataformats='HWC')
 
         with open(path.join(args.evaldir, "metrics.csv"), "w", encoding="utf-8") as fout:
             fout.write(metrics.to_csv())
