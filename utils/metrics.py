@@ -2,38 +2,38 @@ import torch
 
 class Metrics:
     def __init__(self, cnames, log_colors=True, device='cuda'):
-        
+
         self.name_classes = cnames
         self.num_classes = len(self.name_classes)
-        
+
         self.log_colors = log_colors
         self.device = device
-        
+
         self.confusion_matrix = torch.zeros(self.num_classes, self.num_classes, dtype=torch.long, device=device)
-        
+
         self.color_dict = {'cyan'  : '\033[96m',
                            'green' : '\033[92m',
                            'yellow': '\033[93m',
                            'red'   : '\033[91m'}
 
-    def __genterate_cm__(self, pred, gt):                                                       #       preds                    
-        mask = (gt >= 0) & (gt < self.num_classes)                                              #     +------- 
-        combinations = self.num_classes*gt[mask] + pred[mask] # 0 <= comb <= num_classes^2-1    #   l | . . . 
+    def __genterate_cm__(self, pred, gt):                                                       #       preds
+        mask = (gt >= 0) & (gt < self.num_classes)                                              #     +-------
+        combinations = self.num_classes*gt[mask] + pred[mask] # 0 <= comb <= num_classes^2-1    #   l | . . .
         cm_entries = torch.bincount(combinations, minlength=self.num_classes**2)                #   b | . . .
-        return cm_entries.reshape(self.num_classes, self.num_classes)                           #   s | . . . 
-        
+        return cm_entries.reshape(self.num_classes, self.num_classes)                           #   s | . . .
+
     def add_sample(self, pred, gt):
         assert pred.shape == gt.shape, "Prediction and Ground Truth must have the same shape"
         self.confusion_matrix += self.__genterate_cm__(pred, gt) # labels along rows, predictions along columns
-        
+
     def PA(self):
         # Pixel Accuracy (Recall) = TP/(TP+FN)
         return torch.diagonal(self.confusion_matrix)/self.confusion_matrix.sum(dim=1)
-        
+
     def PP(self):
         # Pixel Precision = TP/(TP+FP)
         return torch.diagonal(self.confusion_matrix)/self.confusion_matrix.sum(dim=0)
-        
+
     def IoU(self):
         # Intersection over Union = TP/(TP+FP+FN)
         return torch.diagonal(self.confusion_matrix)/(self.confusion_matrix.sum(dim=1)+self.confusion_matrix.sum(dim=0)-torch.diagonal(self.confusion_matrix))
@@ -45,15 +45,15 @@ class Metrics:
     def nanmean(tensor):
         m = torch.isnan(tensor)
         return torch.mean(tensor[~m])
-        
+
     @staticmethod
     def nanstd(tensor):
         m = torch.isnan(tensor)
         return torch.std(tensor[~m])
-        
+
     def color_tuple(self, val, c):
         return (self.color_dict[c], val, '\033[0m')
-    
+
     @staticmethod
     def get_color(val, mean, std):
         if val < mean-std:
@@ -64,9 +64,21 @@ class Metrics:
             return 'green'
         return 'cyan'
 
+    def to_csv(self):
+        out = "Class,PA%,PP%,IoU%\n"
+        pa, pp, iou = 100*self.PA(), 100*self.PP(), 100*self.IoU()
+        mpa, mpp, miou = self.nanmean(pa), self.nanmean(pp), self.nanmean(iou)
+        spa, spp, siou = self.nanstd(pa), self.nanstd(pp), self.nanstd(iou)
+        for i, n in enumerate(self.name_classes):
+            npa, npp, niou = pa[i], pp[i], iou[i]
+            out += f"{n},{npa},{npp},{niou}\n"
+        out += f"Average,{mpa},{mpp},{miou}\n"
+        out += f"Std. Dev.,{spa},{spp},{siou}\n"
+        return out
+
     def __str__(self):
         out = "="*46+'\n'
-        out += "  Class           \t PA %\t PP %\t IoU%\n"
+        out += "  Class           \t PA %\t PP %\t IoU %\n"
         out += "-"*46+'\n'
 
         pa, pp, iou = 100*self.PA(), 100*self.PP(), 100*self.IoU()

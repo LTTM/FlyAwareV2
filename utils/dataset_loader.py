@@ -22,7 +22,7 @@ Classes:
 
 from pathlib import Path
 from PIL import Image
-from typing import Dict, List, Union, Any, Optional
+from typing import Dict, List, Union, Any, Tuple
 
 import torch
 from torch.utils.data import Dataset
@@ -72,12 +72,12 @@ REAL_CLASS_MAPPING = {
     7: {"name": "Unlabeled", "color": [0, 0, 0], "train_id": -1},
 }
 SYNTHETIC_TO_REAL_MAPPING = {
-    -1: {"name": "Unlabeled", "ids": [-1, 2, 3, 9, 10, 14, 15, 16, 17, 18]},
     0: {"name": "Building", "ids": [0, 1, 8]},
     1: {"name": "Road", "ids": [4, 5, 6, 12, 13]},
     2: {"name": "Car", "ids": [22, 23, 24, 25, 26, 27]},
     3: {"name": "Vegetation", "ids": [7, 11, 19]},
     4: {"name": "Human", "ids": [20, 21]},
+    -1: {"name": "Unlabeled", "ids": [-1, 2, 3, 9, 10, 14, 15, 16, 17, 18]},
 }
 WEATHER_NAMES_MAPPING = {
     "day": "ClearNoon",
@@ -247,11 +247,34 @@ class FLYAWAREDataset(Dataset):
         """
         return [el["name"] for el in SYNTHETIC_CLASS_MAPPING.values()]
 
-    def get_train_colormap(self) -> List[List[int]]:
+    def get_coarse_label_names(self) -> List[str]:
+        """
+        Get the coarse-level class names from the dataset constants.
+        """
+        return [el["name"] for el in SYNTHETIC_TO_REAL_MAPPING.values()]
+
+    def get_train_colormap(self) -> List[torch.Tensor]:
         """
         Get the colormap of all labels in the dataset from the provided constants.
         """
         return torch.tensor([el["color"] for el in SYNTHETIC_CLASS_MAPPING.values()], dtype=torch.uint8)
+
+    def get_coarse_colormap(self) -> List[torch.Tensor]:
+        """
+        Compute the coarse-level colormap from the fine-level one.
+        """
+        fine_cmap = self.get_train_colormap()
+        coarse_cmap = []
+        for idx, data in SYNTHETIC_TO_REAL_MAPPING.items():
+            if idx != -1:
+                source_ids = data["ids"]
+                source_cols = torch.stack([fine_cmap[i] for i in source_ids]).float()
+                coarse_col = torch.round(torch.mean(source_cols**2, dim=0)**.5).int()
+                coarse_cmap.append(coarse_col.tolist())
+            else:
+                # unlabeled must be black
+                coarse_cmap.append([0, 0, 0])
+        return torch.tensor(coarse_cmap)
 
     def _expand_items(self) -> None:
         """
@@ -457,19 +480,25 @@ class FLYAWAREDataset(Dataset):
 
         return sample
 
-    def color_label(self, label: torch.Tensor) -> torch.Tensor:
+    @torch.no_grad()
+    def color_label(self, label: torch.Tensor, coarse_level: bool = False) -> torch.Tensor:
         """
         Colorize the label tensor.
 
         Args:
            label (torch.Tensor): Label tensor.
+           coarse_level (bool): Wether to use coarse-level classes.
 
         Returns:
            torch.Tensor: Colorized label tensor.
         """
-        cmap = self.get_train_colormap()
+        if coarse_level:
+            cmap = self.get_coarse_colormap()
+        else:
+            cmap = self.get_train_colormap()
         return cmap[label]
 
+    @torch.no_grad()
     def to_rgb(self, ts: torch.Tensor) -> torch.Tensor:
         """
         Convert the tensor to RGB format, inverting normalization.
@@ -484,6 +513,58 @@ class FLYAWAREDataset(Dataset):
         ts = ts + IMAGENET_MEAN
         return torch.clamp(ts, 0, 1)
 
+    @torch.no_grad()
+    def label_to_coarse(self, label: torch.Tensor) -> torch.Tensor:
+        """
+        Convert the label (BxHxW) tensor to coarse-level classes.
+
+        Args:
+           label (torch.Tensor): Labels tensor (BxHxW).
+
+        Returns:
+           torch.Tensor: Coarse labels tensor.
+        """
+        coarse_label = -1 * torch.ones_like(label)
+        for cidx, data in SYNTHETIC_TO_REAL_MAPPING.items():
+            for fidx in data['ids']:
+                coarse_label[label==fidx] = cidx
+        return coarse_label
+
+    @torch.no_grad()
+    def pred_to_coarse(self, pred: torch.Tensor) -> torch.Tensor:
+        """
+        Convert the predictions (BxCxHxW) tensor to coarse-level classes.
+
+        Args:
+           pred (torch.Tensor): Predictions tensor (BxCxHxW).
+
+        Returns:
+           torch.Tensor: Coarse predictions tensor.
+        """
+        B, _, H, W = pred.shape
+        C = len(SYNTHETIC_TO_REAL_MAPPING) - 1 # unlabeled is not in the predictions
+        coarse_pred = torch.zeros(B,C,H,W, dtype=pred.dtype, device=pred.device)
+        for cidx, data in SYNTHETIC_TO_REAL_MAPPING.items():
+            if cidx != -1:
+                for fidx in data['ids']:
+                    coarse_pred[:,cidx] += pred[:,fidx]
+        return coarse_pred
+
+    @torch.no_grad()
+    def map_to_coarse(self, pred: torch.Tensor, label: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Convert the predictions (BxCxHxW) and label (BxHxW) tensors to coarse-level classes.
+
+        Args:
+           pred (torch.Tensor): Predictions tensor (BxCxHxW).
+           label (torch.Tensor): Labels tensor (BxHxW).
+
+        Returns:
+           torch.Tensor: Coarse predictions tensor.
+           torch.Tensor: Coarse labels tensor.
+        """
+        return self.pred_to_coarse(pred), self.label_to_coarse(label)
+
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
     torch.manual_seed(42)
@@ -495,23 +576,29 @@ if __name__ == "__main__":
     # Example usage of the FLYAWAREDataset class
     dataset = FLYAWAREDataset(
         root="Z:/datasets/FLYAWARE-V2",
-        variant="synthetic",
+        variant="real",
         augment_conf=aug,
         weather="all",
         town="all",
         height="all",
         modality="all",
-        split='train',
+        split='test',
         minlen=0
     )
 
-    sample = dataset[5000]
+    sample = dataset[0]
 
     fig, axs = plt.subplots(1, 3)
     axs[0].imshow(dataset.to_rgb(sample['rgb']).permute(1,2,0))
     axs[0].set_title('RGB Image')
     axs[1].imshow(sample['depth'][0])
     axs[1].set_title('Depth Image')
-    axs[2].imshow(dataset.color_label(sample['semantic']))
+    coarse_label = dataset.label_to_coarse(sample['semantic'])
+    axs[2].imshow(
+        dataset.color_label(
+            coarse_label,
+            coarse_level=True
+            )
+        )
     axs[2].set_title('Labels')
     plt.show()

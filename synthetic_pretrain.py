@@ -82,7 +82,8 @@ if __name__ == "__main__":
     if args.override_logs:
         rmtree(args.logdir, ignore_errors=True)
     if path.exists(args.logdir):
-        raise ValueError("Logging Directory Exists, Stopping. If you want to override it turn on the [override_logs] flag.")
+        raise ValueError("Logging Directory Exists, Stopping."+
+                         " If you want to override it turn on the [override_logs] flag.")
 
     writer = SummaryWriter(args.logdir, flush_secs=.5)
     device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
