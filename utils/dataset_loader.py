@@ -74,7 +74,7 @@ REAL_CLASS_MAPPING = {
 SYNTHETIC_TO_REAL_MAPPING = {
     0: {"name": "Building", "ids": [0, 1, 8]},
     1: {"name": "Road", "ids": [4, 5, 6, 12, 13]},
-    2: {"name": "Car", "ids": [22, 23, 24, 25, 26, 27]},
+    2: {"name": "Vehicle", "ids": [22, 23, 24, 25, 26, 27]},
     3: {"name": "Vegetation", "ids": [7, 11, 19]},
     4: {"name": "Human", "ids": [20, 21]},
     -1: {"name": "Unlabeled", "ids": [-1, 2, 3, 9, 10, 14, 15, 16, 17, 18]},
