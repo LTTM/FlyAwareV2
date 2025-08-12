@@ -182,7 +182,7 @@ if __name__ == "__main__":
         writer.add_image('train/input', tset.to_rgb(rgb[0,:3].cpu()).permute(1,2,0), it, dataformats="HWC")
         writer.add_image('train/label', tset.color_label(mlb[0].cpu()), it, dataformats="HWC")
         writer.add_image('train/pred', tset.color_label(pred[0].cpu()), it, dataformats="HWC")
-        torch.save(model.state_dict(), args.logdir+"/latest.pth")
+        torch.save(model.module.state_dict(), args.logdir+"/latest.pth")
 
         model.eval()
         metrics = Metrics(tset.get_train_label_names()[:-1], device=device)
