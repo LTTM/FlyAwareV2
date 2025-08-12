@@ -1,0 +1,9 @@
+[submodule "synthetic_data_generation"]
+	path = synthetic_data_generation
+	url = https://github.com/LTTM/Syndrone.git
+[submodule "real_data_processing/fog"]
+	path = real_data_processing/fog
+	url = https://github.com/LTTM/MonoFog.git
+[submodule "real_data_processing/rain_and_night"]
+	path = real_data_processing/rain_and_night
+	url = https://github.com/LTTM/img2img-turbo.git
