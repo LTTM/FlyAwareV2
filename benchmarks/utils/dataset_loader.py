@@ -582,7 +582,7 @@ if __name__ == "__main__":
         town="all",
         height="all",
         modality="all",
-        split='test',
+        split='train',
         minlen=0
     )
 
@@ -593,12 +593,12 @@ if __name__ == "__main__":
     axs[0].set_title('RGB Image')
     axs[1].imshow(sample['depth'][0])
     axs[1].set_title('Depth Image')
-    coarse_label = dataset.label_to_coarse(sample['semantic'])
-    axs[2].imshow(
-        dataset.color_label(
-            coarse_label,
-            coarse_level=True
-            )
-        )
+    # coarse_label = dataset.label_to_coarse(sample['semantic'])
+    # axs[2].imshow(
+    #     dataset.color_label(
+    #         coarse_label,
+    #         coarse_level=True
+    #         )
+    #     )
     axs[2].set_title('Labels')
     plt.show()
