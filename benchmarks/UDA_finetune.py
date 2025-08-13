@@ -13,7 +13,7 @@ from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large, deepla
 
 from utils.args import get_args
 from utils.dataset_loader import FLYAWAREDataset, DEFAULT_AUGMENTATIONS, SYNTHETIC_TO_REAL_MAPPING
-from utils.losses import IW_MaxSquareloss
+from utils.losses import MSIW
 from utils.metrics import Metrics
 from utils.mm_model import EarlyFuse, LateFuse
 
@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
     sup_loss = CrossEntropyLoss(ignore_index=-1)
     sup_loss.to(device)
-    uda_loss = IW_MaxSquareloss(num_class=len(cnames))
+    uda_loss = MSIW()
     uda_loss.to(device)
 
     optim = Adam(model.module.parameters(), lr=args.lr)
@@ -219,7 +219,7 @@ if __name__ == "__main__":
                     sout = model(srgb)['out']
                     tout = model(trgb)['out']
                 ls = sup_loss(sout, mlb)
-                lu = uda_loss(tout, tout.softmax(dim=1))
+                lu = uda_loss(tout)
                 l = ls + args.uda_loss_weight * lu
 
             gscaler.scale(l).backward()
