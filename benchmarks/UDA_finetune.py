@@ -155,9 +155,9 @@ if __name__ == "__main__":
         new_weight = torch.empty(len(cnames), Ci, K1, K2)
         new_bias = torch.empty(len(cnames))
         for idx, data in SYNTHETIC_TO_REAL_MAPPING.items():
-            if idx > 0:
+            if idx >= 0:
                 new_weight[idx] = out_conv.weight[data["ids"]].mean(dim=0, keepdim=True)
-                new_bias[idx] = out_conv.bias[data["ids"]].mean(dim=0, keepdim=True)
+                new_bias[idx] = out_conv.bias[data["ids"]].mean()
         if args.model == 'mmlate':
             model.merge.weight = torch.nn.Parameter(new_weight)
             model.merge.bias = torch.nn.Parameter(new_bias)
@@ -236,6 +236,8 @@ if __name__ == "__main__":
 
             writer.add_scalar('train/lr', lr, it)
             writer.add_scalar('train/loss', l.item(), it)
+            writer.add_scalar('train/sup', ls.item(), it)
+            writer.add_scalar('train/uda', lu.item(), it)
             writer.add_scalar('train/mIoU', metrics.percent_mIoU(), it)
 
             optim.step()
