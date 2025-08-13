@@ -541,9 +541,11 @@ class FLYAWAREDataset(Dataset):
         Returns:
            torch.Tensor: Coarse predictions tensor.
         """
-        B, _, H, W = pred.shape
-        C = len(SYNTHETIC_TO_REAL_MAPPING) - 1 # unlabeled is not in the predictions
-        coarse_pred = float('-inf')*torch.ones(B,C,H,W, dtype=pred.dtype, device=pred.device)
+        B, Co, H, W = pred.shape
+        Cn = len(SYNTHETIC_TO_REAL_MAPPING) - 1 # unlabeled is not in the predictions
+        if Co == Cn:
+            return pred
+        coarse_pred = float('-inf')*torch.ones(B,Cn,H,W, dtype=pred.dtype, device=pred.device)
         for cidx, data in SYNTHETIC_TO_REAL_MAPPING.items():
             if cidx != -1:
                 for fidx in data['ids']:

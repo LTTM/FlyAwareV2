@@ -36,6 +36,8 @@ def get_args():
     parser.add_argument("--class_set", type=str, default="fine", choices=["coarse", "fine"],
                         help="wether to use the full class set (28 classes), or "+
                              "the coarse-level one (5 classes).")
+    parser.add_argument("--finetuned", action="store_true",
+                        help="Wether the checkpoint belongs to a finetuned network (5 classes in output).")
 
     parser.add_argument("--iters_per_epoch", type=int, default=3000)
     parser.add_argument("--epochs", type=int, default=10)

@@ -76,15 +76,16 @@ if __name__ == "__main__":
         makedirs(args.evaldir, exist_ok=True)
     device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
 
+    nc = 5 if args.finetuned else 28
     if args.model == 'mobilenet':
         # uses stride 16 (https://pytorch.org/vision/main/_modules/torchvision/models/segmentation/deeplabv3.html)
-        model = deeplabv3_mobilenet_v3_large(num_classes=28)
+        model = deeplabv3_mobilenet_v3_large(num_classes=nc)
     elif args.model == 'resnet50':
-        model = deeplabv3_resnet50(num_classes=28)
+        model = deeplabv3_resnet50(num_classes=nc)
     elif args.model == 'mmearly':
-        model = EarlyFuse(num_classes=28)
+        model = EarlyFuse(num_classes=nc)
     else:
-        model = LateFuse(num_classes=28)
+        model = LateFuse(num_classes=nc)
 
     # change network to single-channel input
     if 'rgb' not in args.modality:

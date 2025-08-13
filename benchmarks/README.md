@@ -28,12 +28,16 @@ This repository contains all the code and tools needed to evaluate the FlyAwareV
     - `mmlate`: MultiModal 2x MobileNetV3 + DeepLabV3 two-encoder latent-fusion multimodal-network
 
 3. After training the final checkpoint will be stored on `<logdir>/latest.pth`. You can use it to infer on any subset of FlyAwareV2 using `test.py <args>`.
-    - DayTime fine-level classes inference on real data:
+    - DayTime coarse-level classes inference on real data:
 
-        `test.py --root_path "<path_to_dataset>" --variant real --pretrained_ckpt "logs/mnet_allh_allt_day_rgb/latest.pth" --weather day --class_set fine`
+        `python evaluate.py --root_path "<path_to_dataset>" --evaldir "evals/day" --class_set coarse --pretrained_ckpt "<logdir>/latest.pth" --weather day --variant real --class_set coarse --resize 3840 --override_logs`
+
+    - Full coarse-level classes inference on real data from finetuned ckpt:
+
+        `python evaluate.py --root_path "<path_to_dataset>" --evaldir "evals/day" --class_set coarse --pretrained_ckpt "<logdir_of_uda>/latest.pth" --finetuned --weather day --variant real --class_set coarse --resize 3840 --override_logs`
 
 4. Fine-tune the checkpoints on real data using UDA techniques.
-    `finetune_uda.py --root_path "<path_to_dataset>" --pretrained_ckpt "logs/mnet_allh_allt_allw_rgb/latest.pth" --logdir "logs/rgb_only_finetuned"`
+    `python UDA_finetune.py --root_path "<path_to_dataset>" --logdir "<path_to_save_dir>" --class_set coarse --pretrained_ckpt "<path_to_pretrained_ckpt>"`
 
 ## Credits
 
