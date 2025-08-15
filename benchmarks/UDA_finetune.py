@@ -15,7 +15,7 @@ from utils.args import get_args
 from utils.dataset_loader import FLYAWAREDataset, DEFAULT_AUGMENTATIONS, SYNTHETIC_TO_REAL_MAPPING
 from utils.losses import MSIW
 from utils.metrics import Metrics
-from utils.mm_model import EarlyFuse, LateFuse
+from utils.models import EarlyFuse, LateFuse, MultiBNModel
 
 def cosinescheduler(it, niters, baselr=2.5e-4, warmup=2000):
     if it <= warmup:
@@ -168,6 +168,10 @@ if __name__ == "__main__":
             model.classifier[-1].weight = torch.nn.Parameter(new_weight)
             model.classifier[-1].bias = torch.nn.Parameter(new_bias)
 
+    if args.uda_multibn:
+        model = MultiBNModel(model)
+        model.update_alternate(False)
+
     model = DataParallel(model)
     model.to(device)
 
@@ -213,10 +217,18 @@ if __name__ == "__main__":
 
             with torch.autocast(device_type="cuda"):
                 if args.model == 'mmlate':
+                    if args.uda_multibn:
+                        model.module.update_alternate(False)
                     sout = model(srgb, sdth)['out']
+                    if args.uda_multibn:
+                        model.module.update_alternate(True)
                     tout = model(trgb, tdth)['out']
                 else:
+                    if args.uda_multibn:
+                        model.module.update_alternate(False)
                     sout = model(srgb)['out']
+                    if args.uda_multibn:
+                        model.module.update_alternate(True)
                     tout = model(trgb)['out']
                 ls = sup_loss(sout, mlb)
                 lu = uda_loss(tout)
@@ -255,6 +267,8 @@ if __name__ == "__main__":
         torch.save(model.module.state_dict(), args.logdir+"/latest.pth")
 
         model.eval()
+        if args.uda_multibn:
+            model.module.update_alternate(True)
         metrics = Metrics(cnames, device=device)
         with torch.inference_mode():
             for samples in tqdm(vloader, total=len(vloader),

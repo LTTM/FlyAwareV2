@@ -12,7 +12,7 @@ from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large, deepla
 from utils.args import get_args
 from utils.dataset_loader import FLYAWAREDataset, DEFAULT_AUGMENTATIONS
 from utils.metrics import Metrics
-from utils.mm_model import EarlyFuse, LateFuse
+from utils.models import EarlyFuse, LateFuse
 
 @torch.no_grad()
 def set_seed(seed):

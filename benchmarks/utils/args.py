@@ -44,6 +44,8 @@ def get_args():
     parser.add_argument("--lr", type=float, default=2.5e-4)
     parser.add_argument("--warmup_iters", type=int, default=2000)
     parser.add_argument("--uda_loss_weight", type=float, default=0.1)
+    parser.add_argument("--uda_multibn", action="store_true",
+                        help="convert model to multi-batchnorm, one for each modality")
 
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--dloader_workers", type=int, default=8)

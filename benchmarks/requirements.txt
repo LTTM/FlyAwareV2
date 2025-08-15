@@ -2,3 +2,5 @@ torch
 torchvision
 tqdm
 tensorboard
+matplotlib
+ptflops

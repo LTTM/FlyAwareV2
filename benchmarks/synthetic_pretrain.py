@@ -14,7 +14,7 @@ from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large, deepla
 from utils.args import get_args
 from utils.dataset_loader import FLYAWAREDataset, DEFAULT_AUGMENTATIONS
 from utils.metrics import Metrics
-from utils.mm_model import EarlyFuse, LateFuse
+from utils.models import EarlyFuse, LateFuse
 
 def cosinescheduler(it, niters, baselr=2.5e-4, warmup=2000):
     if it <= warmup:
