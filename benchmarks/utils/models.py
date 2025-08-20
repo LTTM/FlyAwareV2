@@ -69,11 +69,30 @@ class MultiBNModel(nn.Module):
                 )
             )
 
+    @torch.no_grad()
     def update_alternate(self, alternate=False):
         self.alternate = alternate
         for bn in self.bns:
             m = get_named_child(self.model, bn)
             m.alternate = alternate
+
+    @torch.no_grad()
+    def clean_param(self, p):
+        p[torch.isnan(p)] = 0
+        p[torch.isinf(p)] = 0
+        return p
+
+    @torch.no_grad()
+    def ema_alternate(self, rate=.85):
+        for bn in self.bns:
+            m = get_named_child(self.model, bn)
+            for p1, p2 in zip(m.bn1.parameters(), m.bn2.parameters()):
+                p2.data = rate*p1.data + (1-rate)*p2.data
+
+                # t = .5*self.clean_param(p1.data) + .5*self.clean_param(p2.data)
+                # p1.data = self.clean_param(rate*t + (1-rate)*p1.data)
+                # p2.data = self.clean_param(rate*t + (1-rate)*p2.data)
+
 
     def forward(self, *args, **kwargs):
         return self.model(*args, **kwargs)

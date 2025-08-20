@@ -242,6 +242,9 @@ if __name__ == "__main__":
             gscaler.step(optim)
             gscaler.update()
 
+            if args.uda_multibn:
+                model.module.ema_alternate()
+
             spred = sout.detach().argmax(dim=1)
             tpred = tout.detach().argmax(dim=1)
             metrics.add_sample(spred, mlb)
