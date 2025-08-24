@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     if args.uda_multibn:
         model = MultiBNModel(model)
-        model.update_alternate(True) # <- False > True
+        model.update_alternate(args.use_alternate_bn) # <- False > True
     model.load_state_dict(
         torch.load(args.pretrained_ckpt, "cpu",
                    weights_only=True)
