@@ -38,6 +38,8 @@ def get_args():
                              "the coarse-level one (5 classes).")
     parser.add_argument("--finetuned", action="store_true",
                         help="Wether the checkpoint belongs to a finetuned network (5 classes in output).")
+    parser.add_argument("--use_alternate_bn", action="store_true",
+                        help="Wether to use the secondary BN for eval, only has effect when uda_multibn flag is enabled.")
 
     parser.add_argument("--iters_per_epoch", type=int, default=3000)
     parser.add_argument("--epochs", type=int, default=10)

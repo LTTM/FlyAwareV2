@@ -12,7 +12,7 @@ from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large, deepla
 from utils.args import get_args
 from utils.dataset_loader import FLYAWAREDataset, DEFAULT_AUGMENTATIONS
 from utils.metrics import Metrics
-from utils.models import EarlyFuse, LateFuse
+from utils.models import EarlyFuse, LateFuse, MultiBNModel
 
 @torch.no_grad()
 def set_seed(seed):
@@ -101,6 +101,9 @@ if __name__ == "__main__":
                 torch.nn.init.xavier_uniform_(w)
                 model.backbone['conv1'].weight = torch.nn.Parameter(w)
 
+    if args.uda_multibn:
+        model = MultiBNModel(model)
+        model.update_alternate(True) # <- False > True
     model.load_state_dict(
         torch.load(args.pretrained_ckpt, "cpu",
                    weights_only=True)
