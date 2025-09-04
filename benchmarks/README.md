@@ -150,8 +150,8 @@ python UDA_finetune.py \
 
 This benchmark suite was developed by:
 
-- **Francesco Barbato** - Primary developer
-- **Matteo Caligiuri** - Co-developer
+- [**Francesco Barbato**](https://medialab.dei.unipd.it/members/francesco-barbato/) - Primary developer
+- [**Matteo Caligiuri**](https://matteocali.github.io/) - Co-developer
 
 Dipartimento di Ingegneria dell'Informazione (DEI) - UniPD
 

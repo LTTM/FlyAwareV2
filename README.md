@@ -13,11 +13,13 @@ A comprehensive multi-modal dataset for semantic segmentation in urban UAV scena
 
 <div align="center">
 
-| [Francesco Barbato](https://medialab.dei.unipd.it/members/francesco-barbato/) | [Matteo Caligiuri](https://matteocali.github.io/) | [Pietro Zanuttigh](https://medialab.dei.unipd.it/members/pietro-zanuttigh/) |
+| [Francesco Barbato*](https://medialab.dei.unipd.it/members/francesco-barbato/) | [Matteo Caligiuri*](https://matteocali.github.io/) | [Pietro Zanuttigh](https://medialab.dei.unipd.it/members/pietro-zanuttigh/) |
 |:---:|:---:|:---:|
 
 **Department of Information Engineering, University of Padova**,
 Via Gradenigo 6/b, 35131 Padova, Italy
+
+\* These authors contributed equally to this work.
 </div>
 
 ---
@@ -66,7 +68,7 @@ If you use FlyAwareV2 in your research, please cite our paper:
 
 ---
 
-## � Dataset Download
+## ⬇️ Dataset Download
 
 > [!IMPORTANT]
 > **The FlyAwareV2 dataset is now available for download!** Choose the version that best fits your research needs.
@@ -138,10 +140,10 @@ FlyAwareV2/
 
 | Weather | Description | Real Data | Synthetic Data |
 |---------|-------------|-----------|----------------|
-| ☀️ **Sunny** | Clear weather conditions | ✅ Native | ✅ Simulated |
-| 🌧️ **Rainy** | Rain effects and wet surfaces | ✅ Augmented | ✅ Simulated |
-| 🌫️ **Foggy** | Fog simulation with depth-aware effects | ✅ Augmented | ✅ Simulated |
-| 🌙 **Night** | Low-light and artificial lighting | ✅ Augmented | ✅ Simulated |
+| ☀️ **Sunny** | Clear weather conditions | Native | Simulated |
+| 🌧️ **Rainy** | Rain effects and wet surfaces | Augmented | Simulated |
+| 🌫️ **Foggy** | Fog simulation with depth-aware effects | Augmented | Simulated |
+| 🌙 **Night** | Low-light and artificial lighting | Augmented | Simulated |
 
 ---
 
