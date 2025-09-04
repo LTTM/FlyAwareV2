@@ -26,7 +26,7 @@ Via Gradenigo 6/b, 35131 Padova, Italy
 
 <div align="center">
 
-<img src="extras/graphabstract.pdf" alt="FlyAwareV2 Graphical Abstract" width="60%">
+<img src="extras/graphabstract.svg" alt="FlyAwareV2 Graphical Abstract" width="60%">
 
 </div>
 
@@ -63,6 +63,68 @@ If you use FlyAwareV2 in your research, please cite our paper:
   institution={Dipartimento di Ingegneria dell'Informazione (DEI), University of Padova}
 }
 ```
+
+---
+
+## � Dataset Download
+
+> [!IMPORTANT]
+> **The FlyAwareV2 dataset is now available for download!** Choose the version that best fits your research needs.
+
+### 🔗 Download Links
+
+| Dataset Version | Size | Description | Download |
+|----------------|------|-------------|----------|
+| 🎮 **Synthetic Only** | ~XX GB | CARLA-generated data with all weather conditions | [Download Synthetic](https://flyaware-dataset.org/download/synthetic) |
+| 📷 **Real Only** | ~XX GB | Augmented real UAV imagery from UAVid & VisDrone | [Download Real](https://flyaware-dataset.org/download/real) |
+| 🔄 **Complete Dataset** | ~XX GB | Both synthetic and real data (Recommended) | [Download Complete](https://flyaware-dataset.org/download/complete) |
+
+### 📁 Recommended Folder Structure
+
+After downloading and extracting the dataset, organize your data following this structure:
+
+```text
+FlyAwareV2/
+├── 📁 real/
+│   ├── 📁 train/
+│   │   ├── 📁 day/                     # Clear weather training data
+│   │   │   ├── 📁 rgb/                 # RGB images
+│   │   │   └── 📁 depth/               # Depth maps
+│   │   ├── 📁 fog/                     # Foggy training data
+│   │   ├── 📁 night/                   # Night training data
+│   │   └── 📁 rain/                    # Rainy training data
+│   └── 📁 test/
+│       ├── 📁 day/                     # Test data with annotations
+│       │   ├── 📁 rgb/
+│       │   ├── 📁 depth/
+│       │   ├── 📁 semantic/            # Semantic segmentation
+│       ├── 📁 fog/
+│       ├── 📁 night/
+│       └── 📁 rain/
+└── 📁 synthetic/
+    ├── 📁 Town01_Opt_120/              # Urban environment 1
+    │   ├── 📁 ClearNoon/               # Sunny conditions
+    │   │   ├── 📁 height20m/           # 20m altitude
+    │   │   │   ├── 📁 rgb/
+    │   │   │   ├── 📁 depth/
+    │   │   │   ├── 📁 semantic/
+    │   │   │   └── 📁 camera/          # Camera parameters
+    │   │   ├── 📁 height50m/           # 50m altitude
+    │   │   └── 📁 height80m/           # 80m altitude
+    │   ├── 📁 HardRainNoon/            # Rainy conditions
+    │   ├── 📁 MidFoggyNoon/            # Foggy conditions
+    │   └── 📁 ClearNight/              # Night conditions
+    ├── 📁 Town02_Opt_120/              # Additional towns...
+    ├── 📁 Town03_Opt_120/
+    ├── 📁 Town04_Opt_120/
+    ├── 📁 Town05_Opt_120/
+    ├── 📁 Town06_Opt_120/
+    ├── 📁 Town07_Opt_120/
+    └── 📁 Town10HD_Opt_120/
+```
+
+> [!NOTE]
+> The complete folder structure contains over 100K+ images across all modalities and conditions. Each town includes 4 weather conditions and 3 altitude levels with RGB, depth, and semantic data.
 
 ---
 
