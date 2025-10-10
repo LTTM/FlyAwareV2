@@ -514,6 +514,21 @@ class FLYAWAREDataset(Dataset):
         return torch.clamp(ts, 0, 1)
 
     @torch.no_grad()
+    def to_depth(self, ts: torch.Tensor) -> torch.Tensor:
+        """
+        Convert the tensor to depth format, inverting normalization.
+
+        Args:
+           ts (torch.Tensor): Tensor to convert.
+
+        Returns:
+           torch.Tensor: Depth tensor.
+        """
+        ts = ts * IMAGENET_STD.mean(dim=0, keepdim=True)
+        ts = ts + IMAGENET_MEAN.mean(dim=0, keepdim=True)
+        return torch.clamp(ts, 0, 1)
+
+    @torch.no_grad()
     def label_to_coarse(self, label: torch.Tensor) -> torch.Tensor:
         """
         Convert the label (BxHxW) tensor to coarse-level classes.

@@ -33,6 +33,8 @@ def get_args():
     parser.add_argument("--evaldir", type=str, default='evals')
     parser.add_argument("--eval_tensorboard", action="store_true",
                         help="Wether to also log evaluation metrics in tensorboard.")
+    parser.add_argument("--eval_save_images", action="store_true",
+                        help="Wether to also save evaluation images.")
     parser.add_argument("--class_set", type=str, default="fine", choices=["coarse", "fine"],
                         help="wether to use the full class set (28 classes), or "+
                              "the coarse-level one (5 classes).")

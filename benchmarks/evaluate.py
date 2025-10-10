@@ -1,6 +1,8 @@
-from os import path, makedirs, remove
+from os import path, makedirs
 from shutil import rmtree
 from tqdm import tqdm
+import numpy as np
+from PIL import Image
 
 import torch
 from torch.nn import DataParallel
@@ -57,11 +59,7 @@ if __name__ == "__main__":
                          num_workers=args.dloader_workers)
 
     if args.override_logs:
-        if args.eval_tensorboard:
-            rmtree(args.evaldir, ignore_errors=True)
-        else:
-            if path.exists(path.join(args.evaldir, "metrics.csv")):
-                remove(path.join(args.evaldir, "metrics.csv"))
+        rmtree(args.evaldir, ignore_errors=True)
 
     if path.exists(args.evaldir) and args.eval_tensorboard:
         raise ValueError("Evaluation Directory Exists, Stopping."+
@@ -74,6 +72,14 @@ if __name__ == "__main__":
         writer = SummaryWriter(args.evaldir, flush_secs=.5)
     else:
         makedirs(args.evaldir, exist_ok=True)
+
+    if args.eval_save_images:
+        makedirs(path.join(args.evaldir, "images"), exist_ok=True)
+        makedirs(path.join(args.evaldir, "images", "rgb"), exist_ok=True)
+        makedirs(path.join(args.evaldir, "images", "depth"), exist_ok=True)
+        makedirs(path.join(args.evaldir, "images", "labels"), exist_ok=True)
+        makedirs(path.join(args.evaldir, "images", "preds"), exist_ok=True)
+
     device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
 
     nc = 5 if args.finetuned else 28
@@ -117,8 +123,8 @@ if __name__ == "__main__":
 
     metrics = Metrics(cnames, device=device)
     with torch.inference_mode():
-        for samples in tqdm(vloader, total=len(vloader),
-                desc="Testing...", smoothing=0):
+        for ii, samples in enumerate(tqdm(vloader, total=len(vloader),
+                desc="Testing...", smoothing=0)):
 
             if "rgb" in vset.modality:
                 rgb = samples["rgb"].to("cuda")
@@ -147,6 +153,22 @@ if __name__ == "__main__":
 
             pred = out.argmax(dim=1)
             metrics.add_sample(pred, mlb)
+
+            if args.eval_save_images:
+                im_name = f"{ii:08d}.%s"
+                if "rgb" in vset.modality:
+                    rgb_img = vset.to_rgb(samples["rgb"][0].cpu()).permute(1, 2, 0).numpy()
+                    rgb_img = np.round(rgb_img * 255).astype(np.uint8)
+                    Image.fromarray(rgb_img).save(path.join(args.evaldir, "images", "rgb", im_name % "jpg"))
+                if "depth" in vset.modality:
+                    dth_img = torch.sqrt(vset.to_depth(samples["depth"][0].cpu())).permute(1, 2, 0).repeat(1,1,3).numpy()
+                    dth_img = np.round(dth_img * 255).astype(np.uint8)
+                    Image.fromarray(dth_img).save(path.join(args.evaldir, "images", "depth", im_name % "jpg"))
+                lbl_img = vset.color_label(mlb[0].cpu(), coarse_level=args.class_set=="coarse").numpy()
+                Image.fromarray(lbl_img).save(path.join(args.evaldir, "images", "labels", im_name % "png"))
+                pred_img = vset.color_label(pred[0].cpu(), coarse_level=args.class_set=="coarse").numpy()
+                Image.fromarray(pred_img).save(path.join(args.evaldir, "images", "preds", im_name % "png"))
+
             if args.debug:
                 break
 
