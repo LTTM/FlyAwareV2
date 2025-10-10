@@ -3,9 +3,12 @@
 [![License: GPL3](https://img.shields.io/badge/License-GPL3-yellow.svg)](https://opensource.org/license/gpl-3-0)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Paper](https://img.shields.io/badge/arXiv-Paper-red)](https://arxiv.org)
-[![Dataset](https://img.shields.io/badge/Dataset-Official%20Website-green)](https://flyaware-dataset.org)
+[![Dataset](https://img.shields.io/badge/Dataset-Official%20Website-green)](https://medialab.dei.unipd.it/paper_data/FlyAwareV2/)
 
-A comprehensive multi-modal dataset for semantic segmentation in urban UAV scenarios, featuring both synthetic and real data across different weather conditions, altitudes, and modalities.
+The development of computer vision algorithms for Unmanned Aerial Vehicle (UAV) applications in urban environments heavily relies on the availability of large-scale datasets with accurate annotations. However, collecting and annotating real-world UAV data is extremely challenging and costly.
+To address this limitation, we present FlyAwareV2, a novel multimodal  dataset encompassing both real and synthetic UAV imagery tailored for urban scene understanding tasks.
+Building upon the recently introduced SynDrone and FlyAware datasets, FlyAwareV2 introduces several new key contributions: 1) Multimodal data (RGB, depth, semantic labels) across diverse environmental conditions including varying weather and daytime; 2) Depth maps for real samples computed via state-of-the-art monocular depth estimation; 3) Benchmarks for RGB and multimodal semantic segmentation on standard architectures; 4) Studies on synthetic-to-real domain adaptation to assess the generalization capabilities of models trained on the synthetic data.
+With its rich set of annotations and environmental diversity, FlyAwareV2 provides a valuable resource for research on UAV-based 3D urban scene understanding.
 
 ---
 
@@ -34,11 +37,7 @@ Via Gradenigo 6/b, 35131 Padova, Italy
 
 ---
 
-## 📖 Overview
-
-**FlyAwareV2** is a large-scale multi-modal dataset designed for semantic segmentation of urban aerial imagery captured by UAVs (Unmanned Aerial Vehicles). The dataset addresses the critical need for robust computer vision models in adverse weather conditions and diverse urban environments.
-
-### 🌟 Key Features
+## 🌟 Key Features
 
 - 🏙️ **Multi-Environment**: Multiple urban towns and scenarios
 - 📏 **Multi-Altitude**: Different recording heights (20m, 50m, 120m)
@@ -77,9 +76,12 @@ If you use FlyAwareV2 in your research, please cite our paper:
 
 | Dataset Version | Size | Description | Download |
 |----------------|------|-------------|----------|
-| 🎮 **Synthetic Only** | ~XX GB | CARLA-generated data with all weather conditions | [Download Synthetic](https://flyaware-dataset.org/download/synthetic) |
-| 📷 **Real Only** | ~XX GB | Augmented real UAV imagery from UAVid & VisDrone | [Download Real](https://flyaware-dataset.org/download/real) |
-| 🔄 **Complete Dataset** | ~XX GB | Both synthetic and real data (Recommended) | [Download Complete](https://flyaware-dataset.org/download/complete) |
+| 🎮 **Synthetic Only** | ~290 GB | CARLA-generated data (script to download multiple zip files) | [Download Synthetic](https://medialab.dei.unipd.it/paper_data/FlyAwareV2/scripts/dw_flyawarev2_synth.sh) |
+| 📷 **Real Only** | ~6 GB | Augmented real UAV imagery from UAVid & VisDrone (direct download) | [Download Real](https://medialab.dei.unipd.it/paper_data/FlyAwareV2/static/datasets/real/FlyAwareV2-R.zip) |
+| 🔄 **Complete Dataset** | ~296 GB | Both synthetic and real data (script) | [Download Complete](https://medialab.dei.unipd.it/paper_data/FlyAwareV2/scripts/dw_flyawarev2.sh) |
+
+> [!NOTE]
+> Check the official [download page](https://medialab.dei.unipd.it/paper_data/FlyAwareV2/downloads) for in-depth downlaod instruction.
 
 ### 📁 Recommended Folder Structure
 
@@ -89,34 +91,34 @@ After downloading and extracting the dataset, organize your data following this 
 FlyAwareV2/
 ├── 📁 real/
 │   ├── 📁 train/
-│   │   ├── 📁 day/                     # Clear weather training data
-│   │   │   ├── 📁 rgb/                 # RGB images
-│   │   │   └── 📁 depth/               # Depth maps
-│   │   ├── 📁 fog/                     # Foggy training data
-│   │   ├── 📁 night/                   # Night training data
-│   │   └── 📁 rain/                    # Rainy training data
+│   │   ├── 📁 day/               # Clear weather training data
+│   │   │   ├── 📁 rgb/           # RGB images
+│   │   │   └── 📁 depth/         # Depth maps
+│   │   ├── 📁 fog/               # Foggy training data
+│   │   ├── 📁 night/             # Night training data
+│   │   └── 📁 rain/              # Rainy training data
 │   └── 📁 test/
-│       ├── 📁 day/                     # Test data with annotations
+│       ├── 📁 day/               # Test data with annotations
 │       │   ├── 📁 rgb/
 │       │   ├── 📁 depth/
-│       │   ├── 📁 semantic/            # Semantic segmentation
+│       │   ├── 📁 semantic/      # Semantic segmentation
 │       ├── 📁 fog/
 │       ├── 📁 night/
 │       └── 📁 rain/
 └── 📁 synthetic/
-    ├── 📁 Town01_Opt_120/              # Urban environment 1
-    │   ├── 📁 ClearNoon/               # Sunny conditions
-    │   │   ├── 📁 height20m/           # 20m altitude
+    ├── 📁 Town01_Opt_120/        # Urban environment 1
+    │   ├── 📁 ClearNoon/         # Sunny conditions
+    │   │   ├── 📁 height20m/     # 20m altitude
     │   │   │   ├── 📁 rgb/
     │   │   │   ├── 📁 depth/
     │   │   │   ├── 📁 semantic/
-    │   │   │   └── 📁 camera/          # Camera parameters
-    │   │   ├── 📁 height50m/           # 50m altitude
-    │   │   └── 📁 height80m/           # 80m altitude
-    │   ├── 📁 HardRainNoon/            # Rainy conditions
-    │   ├── 📁 MidFoggyNoon/            # Foggy conditions
-    │   └── 📁 ClearNight/              # Night conditions
-    ├── 📁 Town02_Opt_120/              # Additional towns...
+    │   │   │   └── 📁 camera/    # Camera parameters
+    │   │   ├── 📁 height50m/     # 50m altitude
+    │   │   └── 📁 height80m/     # 80m altitude
+    │   ├── 📁 HardRainNoon/      # Rainy conditions
+    │   ├── 📁 MidFoggyNoon/      # Foggy conditions
+    │   └── 📁 ClearNight/        # Night conditions
+    ├── 📁 Town02_Opt_120/        # Additional towns...
     ├── 📁 Town03_Opt_120/
     ├── 📁 Town04_Opt_120/
     ├── 📁 Town05_Opt_120/
@@ -143,7 +145,7 @@ FlyAwareV2/
 | ☀️ **Sunny** | Clear weather conditions | Native | Simulated |
 | 🌧️ **Rainy** | Rain effects and wet surfaces | Augmented | Simulated |
 | 🌫️ **Foggy** | Fog simulation with depth-aware effects | Augmented | Simulated |
-| 🌙 **Night** | Low-light and artificial lighting | Augmented | Simulated |
+| 🌙 **Night** | Low-light and artificial lighting | Partially augmented | Simulated |
 
 ---
 
@@ -153,13 +155,13 @@ This repository contains all the code and tools for dataset generation, processi
 
 ```text
 FlyAwareV2/
-├── 📁 synthetic_data_generation/    # CARLA-based synthetic data generation
-├── 📁 real_data_processing/         # Real data augmentation and processing
-│   ├── 📁 fog/                     # Fog simulation tools
-│   └── 📁 rain_and_night/          # Rain and night augmentation
-├── 📁 benchmarks/                  # Comprehensive evaluation suite
-├── 📁 extras/                      # Additional resources and assets
-└── 📄 README.md                    # This file
+├── 📁 synthetic_data_generation/  # CARLA-based synthetic data generation
+├── 📁 real_data_processing/       # Real data augmentation and processing
+│   ├── 📁 fog/                    # Fog simulation tools
+│   └── 📁 rain_and_night/         # Rain and night augmentation
+├── 📁 benchmarks/                 # Comprehensive evaluation suite
+├── 📁 extras/                     # Additional resources and assets
+└── 📄 README.md                   # This file
 ```
 
 ### 🛠️ Components Overview
@@ -189,8 +191,7 @@ cd FlyAwareV2
 
 ### 2️⃣ Dataset Download
 
-> [!NOTE]
-> The complete dataset download instructions and links will be available on our [official website](https://flyaware-dataset.org).
+Download the dataset as described above
 
 ---
 
@@ -292,7 +293,7 @@ Our benchmark suite evaluates models across multiple dimensions:
 - **⚡ Computational Efficiency**: FLOPs and inference time analysis
 
 > [!NOTE]
-> Detailed benchmark results and leaderboards are available in the [`benchmarks/`](benchmarks/) directory.
+> Detailed benchmark results and leaderboards are available in the [`official paper`](https://arxiv.org).
 
 ---
 
@@ -330,8 +331,8 @@ This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) 
 For questions and support:
 
 - 📧 Email: [francesco.barbato@unipd.it](mailto:francesco.barbato@unipd.it)
-- 🐛 Issues: [GitHub Issues](https://github.com/LTTM/FlyAware/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/LTTM/FlyAware/discussions)
+- 🐛 Issues: [GitHub Issues](https://github.com/LTTM/FlyAwareV2/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/LTTM/FlyAwareV2/discussions)
 
 ---
 
