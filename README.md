@@ -2,7 +2,7 @@
 
 [![License: GPL3](https://img.shields.io/badge/License-GPL3-yellow.svg)](https://opensource.org/license/gpl-3-0)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Paper](https://img.shields.io/badge/arXiv-Paper-red)](https://arxiv.org)
+[![Paper](https://img.shields.io/badge/arXiv-Paper-red)](https://arxiv.org/pdf/2510.13243)
 [![Dataset](https://img.shields.io/badge/Dataset-Official%20Website-green)](https://medialab.dei.unipd.it/paper_data/FlyAwareV2/)
 
 The development of computer vision algorithms for Unmanned Aerial Vehicle (UAV) applications in urban environments heavily relies on the availability of large-scale datasets with accurate annotations. However, collecting and annotating real-world UAV data is extremely challenging and costly.
@@ -56,12 +56,14 @@ Via Gradenigo 6/b, 35131 Padova, Italy
 If you use FlyAwareV2 in your research, please cite our paper:
 
 ```bibtex
-@article{flyawarev2_2025,
-  title={FlyAwareV2: Multi-Modal UAV Dataset for Urban Semantic Segmentation with Adverse Weather Analysis},
-  author={Francesco Barbato and Matteo Caligiuri and Pietro Zanuttigh},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
-  year={2025},
-  institution={Dipartimento di Ingegneria dell'Informazione (DEI), University of Padova}
+@misc{barbato2025flyawarev2multimodalcrossdomainuav,
+      title={FlyAwareV2: A Multimodal Cross-Domain UAV Dataset for Urban Scene Understanding}, 
+      author={Francesco Barbato and Matteo Caligiuri and Pietro Zanuttigh},
+      year={2025},
+      eprint={2510.13243},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2510.13243}, 
 }
 ```
 
@@ -293,7 +295,7 @@ Our benchmark suite evaluates models across multiple dimensions:
 - **⚡ Computational Efficiency**: FLOPs and inference time analysis
 
 > [!NOTE]
-> Detailed benchmark results and leaderboards are available in the [`official paper`](https://arxiv.org).
+> Detailed benchmark results and leaderboards are available in the [`official paper`](https://arxiv.org/pdf/2510.13243).
 
 ---
 
