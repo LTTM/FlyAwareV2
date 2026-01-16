@@ -31,7 +31,7 @@ Via Gradenigo 6/b, 35131 Padova, Italy
 
 <div align="center">
 
-<img src="extras/graphabstract.svg" alt="FlyAwareV2 Graphical Abstract" width="60%">
+<img src="extras/graphabstract_horizzontal.svg" alt="FlyAwareV2 Graphical Abstract" width="60%">
 
 </div>
 
