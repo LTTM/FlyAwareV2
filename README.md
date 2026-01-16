@@ -56,15 +56,18 @@ Via Gradenigo 6/b, 35131 Padova, Italy
 If you use FlyAwareV2 in your research, please cite our paper:
 
 ```bibtex
-@misc{barbato2025flyawarev2multimodalcrossdomainuav,
-      title={FlyAwareV2: A Multimodal Cross-Domain UAV Dataset for Urban Scene Understanding}, 
-      author={Francesco Barbato and Matteo Caligiuri and Pietro Zanuttigh},
-      year={2025},
-      eprint={2510.13243},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2510.13243}, 
+@article{BARBATO2026117483,
+      title = {FlyAwareV2: A multimodal cross-domain UAV dataset for urban scene understanding},
+      journal = {Signal Processing: Image Communication},
+      pages = {117483},
+      year = {2026},
+      issn = {0923-5965},
+      doi = {https://doi.org/10.1016/j.image.2026.117483},
+      url = {https://www.sciencedirect.com/science/article/pii/S0923596526000068},
+      author = {Francesco Barbato and Matteo Caligiuri and Pietro Zanuttigh},
+      keywords = {Semantic segmentation, Aerial imaging, Depth data, Multimodal scene understanding, Unsupervised domain adaptation}
 }
+
 ```
 
 ---
